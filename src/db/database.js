@@ -4,6 +4,34 @@ import { DatabaseSync } from 'node:sqlite';
 
 export const SCHEMA_PATH = fileURLToPath(new URL('../../sql/schema.sql', import.meta.url));
 
+/**
+ * Parent-first load order for all 21 tables. Immediate FKs need their parent rows first; the
+ * two cycles (team ↔ employee, shift_assignment ↔ swap_request) use deferred FKs.
+ */
+export const LOAD_ORDER = Object.freeze([
+  'labor_policy',
+  'skill',
+  'team',
+  'employee',
+  'employee_skill',
+  'leave_entitlement',
+  'shift_template',
+  'holiday_calendar',
+  'shift',
+  'coverage_requirement',
+  'leave_request',
+  'leave_request_event',
+  'shift_assignment',
+  'swap_request',
+  'swap_request_event',
+  'shift_assignment_event',
+  'attendance_event',
+  'employee_week_summary',
+  'coverage_status',
+  'leave_balance',
+  'attendance_reconciliation',
+]);
+
 export function readSchema() {
   return readFileSync(SCHEMA_PATH, 'utf8');
 }

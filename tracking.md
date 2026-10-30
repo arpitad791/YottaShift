@@ -16,7 +16,7 @@ traceability matrix and the change log at the end of every phase.
 | Build | Fully local, no paid or hosted services |
 | Stack | Node.js 24 (ESM) · Express 5 · React 19 + Vite · SQLite (built-in `node:sqlite`) · `node:test` · ESLint + Prettier |
 | Fixed seed | `20261022` |
-| Current phase | Phase 5 — done; next: Phase 6 |
+| Current phase | Phase 6 — done; next: Phase 7 |
 
 ## 2. Working agreement
 
@@ -39,8 +39,8 @@ traceability matrix and the change log at the end of every phase.
 | 3 | Transactions & events | LeaveRequest + rule-based decisions, scheduler (ShiftAssignment), AttendanceEvent, SwapRequest with manager approval — all with event history | ✅ Done |
 | 4 | Derived values & metrics | overtime, leave balances, coverage gaps, attendance reconciliation, fairness scores — computed from source records | ✅ Done |
 | 5 | Edge-case injection & ground truth | 5 required anomaly types + boundary cases, `ground_truth.csv/json` kept separate | ✅ Done |
-| 6 | Validation & evaluation | integrity checks, rule detectors, detector-vs-ground-truth scoring, validation summary | ⏳ Next |
-| 7 | Export & reproducibility | CSV / JSON / SQL seed / SQLite DB, source manifest with checksums, two-run reproducibility proof | ⬜ |
+| 6 | Validation & evaluation | integrity checks, rule detectors, detector-vs-ground-truth scoring, validation summary | ✅ Done |
+| 7 | Export & reproducibility | CSV / JSON / SQL seed / SQLite DB, source manifest with checksums, two-run reproducibility proof | ⏳ Next |
 | 8 | Express API | read endpoints for schedules, gaps, exceptions, history; manager actions append events | ⬜ |
 | 9 | React dashboard | manager / HR / ops views of coverage, exceptions, swaps, leave, metrics | ⬜ |
 | 10 | Hardening, docs & submission | full-scale timing, clean-clone run, final README, design notes, AI disclosure, submission checklist | ⬜ |
@@ -140,17 +140,19 @@ Results (full profile): rule checks find 20/20 of each anomaly type, 0/40 bounda
 Verified 2026-10-30: `npm test` 172/172 (≈ 29 s); lint and format clean; two independent runs of both profiles byte-identical (50/50 files incl. ground truth).
 Suggested commit: `feat(anomalies): labelled anomaly and boundary injection with separate ground truth`
 
-### Phase 6 — Validation & evaluation
+### Phase 6 — Validation & evaluation ✅
 
-- [ ] Integrity checks: PK uniqueness, FK integrity (every join), allowed enums, date ordering, arithmetic reconciliation, lifecycle transitions, duplicate detection
-- [ ] Rule detectors that find anomalies **from the data alone** (without reading ground truth)
-- [ ] Evaluation: detector findings vs ground truth → precision / recall per issue type, confusion table
-- [ ] Acceptance checks: coverage met or gaps reported; working-hour constraints hold (outside labelled anomalies); attendance reconciles; swap history preserved
-- [ ] `reports/validation_summary.json` + `.md`; non-zero exit code when an integrity check fails
-- [ ] Tests: each check fails on a purpose-built broken fixture
+- [x] `npm run validate -- --profile <name>` ([`src/cli/validate.js`](src/cli/validate.js)) reads **only the exported files** ([`read-dataset.js`](src/validation/read-dataset.js): RFC 4180 parser, schema-typed columns, parent-first `LOAD_ORDER`), writes `reports/validation_summary.{json,md}`, exits 1 on any problem (2 if it cannot run)
+- [x] Integrity ([`integrity.js`](src/validation/integrity.js)), keys / uniques / FKs read from the schema via PRAGMAs: I-01 layout · I-02 schema load · I-03 PK · I-04 unique keys · I-05 all 47 FK columns · I-06 enums · I-07 ID formats · I-08 date ordering · I-09 duplicates and overlapping ranges · I-10 event-chain structure · I-11 cross-table consistency (data dictionary §11) · I-12 derived tables recompute exactly. Every check is guarded: broken data is reported, never crashes the validator
+- [x] Decision replay ([`decisions.js`](src/validation/decisions.js)): D-01 re-runs every leave decision through the same pure rule engine from exported data; D-02 checks every swap outcome against the statically verifiable swap rules (roster-dependent reasons checked for evaluation-order consistency)
+- [x] Detectors (Phase 3, reading only the tables) graded against the ground truth ([`evaluate.js`](src/validation/evaluate.js)): precision / recall per type, boundary cases flagged, confusion table, secondary findings explained only on labelled records (M-09)
+- [x] Acceptance criteria A-01 … A-04 ([`validate.js`](src/validation/validate.js)) with evidence; report renderer [`validation-report.js`](src/export/validation-report.js)
+- [x] Tests — 20 new ([`validation.test.js`](test/validation.test.js)): CSV parsing; CSV round trip returns exactly the generated data; starter passes; **each of I-01 … I-12, D-01, D-02 fails on a purpose-built broken copy**; evaluation fails on a missing label, a label on a clean record and a flagged boundary; CLI PASS then exit 1 after removing a row from `team.csv`
 
-Exit criteria: all integrity checks pass on starter and full; recall = 1.0 for every injected type, any false positive explained.
-Suggested commit: `feat(validation): integrity checks, anomaly detectors and ground-truth evaluation`
+Results (full profile, from the files): **PASS** in ≈ 17 s — 583,330 rows; 0 integrity failures (1,422,115 FK lookups, 1,823,700 ID checks, 171,054 derived rows recomputed); 5,000 / 5,000 leave decisions replay identically; 7,075 swap checks pass; detection 100 / 100 (precision and recall 100 % for every type); 0 / 40 boundary cases flagged; 20 secondary R-SWP-08 findings, all on labelled swaps; A-01 … A-04 met.
+Verified 2026-10-30: `npm test` 192/192 (≈ 30 s); lint and format clean; both profiles validate PASS; two independent generate + validate runs byte-identical (54/54 files incl. validation reports); a dataset with a deleted CSV fails cleanly with exit 1.
+Fixed during the phase: (1) the reader returned tables in schema-creation order, so loading failed on an immediate FK — a shared `LOAD_ORDER` constant now drives generator and reader (test enforces equality); (2) a cross-table check crashed on an orphaned team instead of reporting it — every check now runs inside a guard; (3) an O(n²) parent lookup in I-10 replaced by a set.
+Suggested commit: `feat(validation): file-level integrity checks, decision replay and ground-truth evaluation`
 
 ### Phase 7 — Export & reproducibility
 
@@ -204,7 +206,7 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | ID | Requirement | Phase | Evidence |
 | --- | --- | --- | --- |
 | B-01 | Combine leave, shift coverage, skills and labour constraints into fair and feasible schedules | 3, 4 | ✅ scheduler combines approved leave, coverage per skill, skill validity and labour limits; fairness key + Jain indices (nights 0.977, hours 0.994) · metrics Phase 4 |
-| B-02 | Expose key decisions and exceptions | 3, 6, 8, 9 | ✅ decision rule ID + reason on every leave/swap decision; exceptions (gaps, missing punches) reported · reports Phase 6, UI Phase 9 |
+| B-02 | Expose key decisions and exceptions | 3, 6, 8, 9 | ✅ decision rule ID + reason on every leave/swap decision; `validation_summary` lists every check, finding and acceptance result · UI Phase 9 |
 | B-03 | Preserve traceability | 1, 3 | ✅ append-only events for leave (10,089), swaps (3,522), assignments (98,772); `supersedes_assignment_id` and `swap_id` links |
 | B-04 | Measurable outputs | 4, 6 | ✅ 4 derived tables + `metrics.json` / `metrics.md` (M-01 … M-08) · validation summary Phase 6 |
 | B-05 | Medium complexity: multiple related entities, conditional rules, ≥1 exception path, meaningful evaluation metrics | 1, 3, 6 | ✅ 21 tables, 42 rules, exception paths in data (rejections, expiries, cancellations, backfills, gaps, no-shows, missing punches) · metrics Phases 4/6 |
@@ -225,7 +227,7 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | E-03 | Cardinality, optional relationships, effective dates, lifecycle states documented | 1 | ✅ erd.md §2–§5, data-dictionary |
 | E-04 | Bridge tables for N:M | 1 | ✅ `employee_skill` bridge; `shift_assignment`, `coverage_requirement` as associative entities (erd.md §3) |
 | E-05 | Event history for state changes | 1, 3 | ✅ 3 event tables populated; lifecycle check passes on every chain |
-| E-06 | Validate all joins | 6 | FK report |
+| E-06 | Validate all joins | 6 | ✅ I-05 resolves all 47 FK columns across the exported files; I-02 loads them into the schema |
 | E-07 | Anomalies keep an issue_type / ground-truth label; unrelated rows untouched | 5 | ✅ labels in `ground_truth/` only; anomalies touch only their own rows (isolation test); untouched tables identical to the baseline |
 | N-01 | IDs: `EMP-000001`, `SHIFT-2026-01-01-A`, `LVE-2026-000001`, `ATT-<employee-id>-<timestamp>`, `SWP-2026-000001` | 2 | ✅ all five brief formats generated (EMP, SHIFT, LVE, ATT, SWP) and enforced by schema + `ID_PATTERNS` |
 | N-02 | Zero-padded counters, immutable IDs, identical across files | 2, 7 | ✅ zero-padded, creation-ordered, identical across reruns; same IDs in CSV and DB · JSON/SQL Phase 7 |
@@ -238,22 +240,22 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | S-07 | Step 5 valid baseline first, then labelled edge cases | 3, 5 | ✅ clean baseline proven violation-free (Phase 3 tests), then labelled injection (`generateDataset`) |
 | S-08 | Step 6 derived values computed from source records | 4 | ✅ `src/derive/derived-tables.js` — pure functions of the source tables; schema CHECKs re-verify the arithmetic · reconciliation of exported files Phase 6 |
 | S-09 | Step 7 separate ground_truth.csv/json, no leakage | 5 | ✅ `data/<profile>/ground_truth/ground_truth.csv` + `.json`, separate folder, never loaded as a table; leakage tests on table and column names |
-| S-10 | Step 8 validation: PK, FK, enums, date ordering, arithmetic reconciliation, lifecycle transitions, duplicates | 6 | validation_summary |
+| S-10 | Step 8 validation: PK, FK, enums, date ordering, arithmetic reconciliation, lifecycle transitions, duplicates | 6 | ✅ `npm run validate`: PK, unique keys, FKs, enums, ID formats, date ordering, arithmetic reconciliation (I-12), lifecycle chains (I-10 + R-GEN-01/R-SWP-08), duplicates — `validation_summary.{json,md}` |
 | S-11 | Step 9 export CSV/JSON/SQL seed + README, schema/dictionary, generator command, seed, source manifest, validation summary | 7 | output folder |
 | S-12 | Step 10 regenerate twice with same seed; compare counts/checksums | 7 | reproducibility.md |
-| X-01 | Edge case: employee double-booked | 5, 6 | ✅ 20 labelled cases (full), all detected by R-SCH-01 · precision/recall report Phase 6 |
-| X-02 | Edge case: approved leave overlaps assigned shift | 5, 6 | ✅ 20 labelled cases (full), all detected by R-SCH-02 · precision/recall report Phase 6 |
-| X-03 | Edge case: required skill absent | 5, 6 | ✅ 20 labelled cases (full), all detected by R-SCH-03 · precision/recall report Phase 6 |
-| X-04 | Edge case: overtime cap exceeded | 5, 6 | ✅ 20 labelled cases (full), all detected by R-OVT-02; 20 breaches in `employee_week_summary` · report Phase 6 |
-| X-05 | Edge case: swap applied without approval | 5, 6 | ✅ 20 labelled cases (full), all detected by R-SWP-06 (R-SWP-08 side effect documented) · report Phase 6 |
-| A-01 | Coverage requirements met or gaps reported | 4, 6 | ✅ `coverage_status`: 669 short slots reported, never filled unqualified; M-01 / M-02 |
-| A-02 | Working-hour constraints hold | 3, 6 | ✅ rest, consecutive-day, weekly-hour and overtime-cap rules hold in the baseline (tested) |
-| A-03 | Attendance reconciles with schedules | 4, 6 | ✅ `attendance_reconciliation`: 99.83 % complete records, 0 with no record; M-07 |
-| A-04 | Swap history preserved | 3, 6 | ✅ swap event chains + links from swaps to old/new assignments (tested) |
+| X-01 | Edge case: employee double-booked | 5, 6 | ✅ 20 labelled (full); recall and precision 100 % (validation summary) |
+| X-02 | Edge case: approved leave overlaps assigned shift | 5, 6 | ✅ 20 labelled (full); recall and precision 100 % (validation summary) |
+| X-03 | Edge case: required skill absent | 5, 6 | ✅ 20 labelled (full); recall and precision 100 % (validation summary) |
+| X-04 | Edge case: overtime cap exceeded | 5, 6 | ✅ 20 labelled (full); recall and precision 100 %; 20 breaches in `employee_week_summary` |
+| X-05 | Edge case: swap applied without approval | 5, 6 | ✅ 20 labelled (full); recall and precision 100 %; R-SWP-08 side effect explained |
+| A-01 | Coverage requirements met or gaps reported | 4, 6 | ✅ A-01 met: 686 GAP slots reported; coverage_status recomputes exactly (I-12) |
+| A-02 | Working-hour constraints hold | 3, 6 | ✅ A-02 met: every working-time finding is a labelled overtime anomaly |
+| A-03 | Attendance reconciles with schedules | 4, 6 | ✅ A-03 met: 99.83 % complete records, 0 with no record, 0 R-ATT-01 violations |
+| A-04 | Swap history preserved | 3, 6 | ✅ A-04 met: complete chains (I-10), linked applied swaps (D-02), R-SWP-08 only on labelled swaps |
 | V-01 | Realistic distributions and meaningful variation | 2, 3 | ✅ master + transactions: leave/swap outcome mixes, lateness, no-shows, fairness spread (Phase 3 results) |
-| V-02 | Consistent IDs and valid joins | 6 | FK report |
-| V-03 | Dependency/lifecycle consistency across entities | 6 | ✅ lifecycle chains checked for all three event tables; rosters published before their week |
-| V-04 | Correct derived values and reconciliation | 4, 6 | ✅ derived values tested against hand-computed fixtures and independent recounts · file-level reconciliation Phase 6 |
+| V-02 | Consistent IDs and valid joins | 6 | ✅ I-05 / I-07 / I-11 on the exported files: 0 failures |
+| V-03 | Dependency/lifecycle consistency across entities | 6 | ✅ I-10 event-chain structure, allowed transitions (R-GEN-01 / R-SWP-08), rosters before their week (I-08) |
+| V-04 | Correct derived values and reconciliation | 4, 6 | ✅ I-12 derived tables recompute exactly from the exported files; D-01 leave decisions replay identically |
 | V-05 | Normal, boundary, failure and exception coverage | 5, 6 | ✅ normal baseline, 4 boundary types (40 cases, none flagged), 5 failure types (100 cases), exception paths (rejections, expiries, gaps, missing punches) |
 | V-06 | Separate ground truth | 5 | ✅ separate `ground_truth/` folder; no label-like table or column in the inputs (tested) |
 | V-07 | Fixed-seed reproducibility, documentation, lawful provenance | 7, 10 | reproducibility.md, README, manifest provenance |
@@ -321,13 +323,13 @@ YottaFlex.ai/  (repo: YottaShift)
 │   ├── generator/          # ✅ config.js, master/, transactions/ (leave, timeline, attendance), anomalies/ (labelled injection), index.js
 │   ├── scheduler/          # ✅ roster-state.js (hard rules, fairness key), scheduler.js (weekly publication)
 │   ├── derive/             # ✅ derived-tables.js (4 derived tables), metrics.js (M-01 … M-08)
-│   ├── validation/         # ✅ business-rules.js (detectors) · integrity checks + evaluation in Phase 6
-│   ├── export/             # ✅ csv-export.js, reports.js (metrics), ground-truth.js · JSON, SQL seed, SQLite DB, manifest in Phase 7
+│   ├── validation/         # ✅ read-dataset, integrity, decisions, business-rules (detectors), evaluate, validate
+│   ├── export/             # ✅ csv-export, reports (metrics), ground-truth, validation-report · JSON, SQL seed, SQLite DB, manifest in Phase 7
 │   ├── db/                 # ✅ database.js (open DB with schema, insert rows)
 │   ├── api/                # Express app
-│   └── cli/                # ✅ generate.js · validate / reproduce later
+│   └── cli/                # ✅ generate.js, validate.js · reproduce in Phase 7
 ├── client/                 # React + Vite dashboard (workspace)
-├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive, anomalies tests
+├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive, anomalies, validation tests
 ├── data/                   # ✅ <profile>/csv, reports, ground_truth; starter committed as sample; full/ git-ignored
 └── ai-disclosure/          # prompt history and AI-usage notes
 ```
@@ -375,6 +377,12 @@ YottaFlex.ai/  (repo: YottaShift)
 | D-37 | 2026-10-30 | Leave overlap made by adding a shift inside an existing approved leave, not by adding a leave | Leaves feed balances and team caps; a new approved leave would change later decisions on unrelated rows | Inject an approved leave |
 | D-38 | 2026-10-30 | Boundary cases found in the data where they occur naturally, nudged only where needed; unreachable ones documented and unit-tested | Keeps boundaries realistic; honest about the 11 h rest case the templates cannot produce | Force every boundary (would need new templates) |
 | D-39 | 2026-10-30 | A finding matches a label when issue type is equal and record IDs intersect | Detectors report whole groups (e.g. all of a week's shifts); exact set equality would be brittle | Exact record-set equality |
+| D-40 | 2026-10-30 | The validator reads only the exported CSV files, never the generator's in-memory data | Validates what is delivered; also proves the CSV export loses nothing (round-trip test) | Validate in memory right after generation |
+| D-41 | 2026-10-30 | Keys, unique constraints and FKs taken from the schema via PRAGMAs | One source of truth; a schema change cannot leave the validator behind | Hand-listed keys |
+| D-42 | 2026-10-30 | Split structural integrity (must be 100 % clean, even with anomalies) from business-rule findings (graded against the ground truth) | Anomalies break rules, never structure; a structural failure means a broken export | One undifferentiated list of errors |
+| D-43 | 2026-10-30 | Leave decisions replayed with the same pure engine; swaps checked only on statically verifiable rules | Full swap replay would need the whole roster timeline; the static checks still catch wrong approvals, wrong deciders, notice, deadline and links | Full swap re-simulation |
+| D-44 | 2026-10-30 | Status PASS requires recall 1 and no finding outside the labels and no flagged boundary, not just clean structure | The detectors are part of the deliverable; a silent miss should fail the run | Report precision/recall without gating |
+| D-45 | 2026-10-30 | Every check runs inside a guard; the CLI exits 1 for invalid data and 2 only if it cannot run | A validator must report broken data, not crash on it | Let exceptions propagate |
 
 ## 9. Open questions & assumptions
 
@@ -414,3 +422,4 @@ YottaFlex.ai/  (repo: YottaShift)
 | 2026-10-30 | 3 | Leave requests + replayable decision engine; roster state, fair scheduler, weekly publication, late-leave backfill, swap workflow, attendance; business-rule checks; all 17 source tables generated (≈ 400k rows at full scale); 44 new tests (130 total). Schema: deferred swap FK, `ASSIGNMENT_CHANGED`, FK child indexes. Fixed swap counterpart realism, fairness banding, end-of-window swap placement and load performance. Decisions D-23 … D-30, assumptions A-14 … A-17 |
 | 2026-10-30 | 4 | Derived tables (week summary, coverage status, leave balance, attendance reconciliation) and metrics M-01 … M-08 with JSON + Markdown reports; shared worked-time/overtime arithmetic; 17 new tests (147 total). Decisions D-31 … D-34 |
 | 2026-10-30 | 5 | Labelled anomaly injection (5 types) and boundary cases (4 reachable types) on the clean baseline; ground truth CSV + JSON in its own folder; derived tables recomputed after injection; `generateDataset({ anomalies: false })` for the baseline; 25 new tests (172 total) proving detection, no false positives, isolation and no leakage. Decisions D-35 … D-39, assumptions A-18 … A-19 |
+| 2026-10-30 | 6 | `npm run validate`: file reader, 12 integrity checks, leave replay and swap decision checks, ground-truth evaluation (M-09), acceptance A-01 … A-04, JSON + Markdown summary; shared `LOAD_ORDER`; 20 new tests (192 total). Full profile PASS from files. Decisions D-40 … D-45 |

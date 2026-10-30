@@ -424,7 +424,7 @@ leavers do not distort it.
 | M-06 | Attendance quality | Outcomes; punctuality, late (> 5 min), early-leave (> 5 min), extension (> 15 min), no-show, missing-punch and manual-correction rates |
 | M-07 | Reconciliation | Share of due assignments with a complete record (punch pair or no-show); scheduled vs worked hours, overall and by operating pattern |
 | M-08 | Fairness | Per team: coefficient of variation of scheduled hours ÷ contracted hours, and Jain's index `(Σx)² / (n·Σx²)` for night, weekend and holiday shift counts across schedulable members (1.0 = perfectly even) |
-| M-09 | Detection quality | Precision and recall per `issue_type` of the validator's detectors against ground truth; false positives on BOUNDARY rows |
+| M-09 | Detection quality | Precision and recall per `issue_type` of the detectors against the ground truth, boundary cases flagged, confusion table, unexplained findings — written by `npm run validate` to `validation_summary.{json,md}` |
 
 ---
 

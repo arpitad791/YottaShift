@@ -429,15 +429,25 @@ one ID with `record_ids`.
 
 ## 11. Checks beyond the schema
 
-The schema cannot express rules that span rows. The validator (Phase 6) runs these checks; each
-one maps to a rule above.
+`npm run validate -- --profile <name>` re-reads the exported files and runs these checks
+([`src/validation/`](../src/validation/)). Results go to
+`data/<profile>/reports/validation_summary.{json,md}`; the command exits with 1 on any problem.
 
-| Group | Check |
-| --- | --- |
-| Keys | PK uniqueness in every exported file (CSV/JSON as well as DB); no duplicate natural keys (e.g. coverage key + date range) |
-| Joins | Every FK resolves in every export; `team.manager_employee_id` is a `MANAGER` of that team; `team.hr_partner_employee_id` is an `HR_PARTNER`; `recorded_by_employee_id` is an `OPS_PARTNER`; event actors have the role they claim; `employee.employment_type` matches its policy |
-| Enums | Every enum column in every export is in its allowed list |
-| Dates | `effective_from ≤ effective_to`; non-overlapping effective ranges; shift `end_at = start_at + duration`; events in time order; decisions before leave/shift start |
-| Derivations | `day_type`, `iso_week`, `requested_days`, certification `valid_to`, all four derived tables recomputed and compared |
-| Lifecycles | Event chains start at the initial state, follow `TRANSITIONS`, have no gaps in `event_seq`, end at the parent's `status` |
-| Business rules | R-SCH-01 … R-SCH-08, R-SWP-06, R-ATT-01, R-OVT-02 → findings compared with ground truth |
+| ID | Check | Covers |
+| --- | --- | --- |
+| I-01 | Every table file present, header = schema columns; ground truth present | file layout |
+| I-02 | All rows load into `sql/schema.sql` (STRICT types, every CHECK, FKs incl. deferred) | structure |
+| I-03 | Primary keys unique and not null (keys read from the schema) | keys |
+| I-04 | `UNIQUE` / natural keys have no duplicates (read from the schema) | duplicates |
+| I-05 | Every FK value resolves in its parent file — all 47 FK columns (read from the schema) | joins |
+| I-06 | Every enum column holds an allowed value | enums |
+| I-07 | Every ID column follows its documented format | IDs |
+| I-08 | Effective ranges, validity, employment, leave and swap timestamps in order; assignments created before their shift; discretionary leave decided before it starts | date ordering |
+| I-09 | No overlapping coverage ranges, no repeated punch types per assignment, no duplicate leave requests | duplicates |
+| I-10 | Every event chain: seq 1…n, linked `from_status`, time order, status = last event | lifecycles (structure) |
+| I-11 | Managers / HR / ops partners have their roles; policy ↔ employment type; primary skill held; certification `valid_to` formula; `day_type`, `iso_week`, `end_at`, template duration; ID years; swap and attendance ownership; event actors' roles; leave decider = the team's manager / HR partner | cross-table consistency |
+| I-12 | The four derived tables recompute exactly from the source files | arithmetic reconciliation |
+| D-01 | All leave decisions replay exactly through R-LVE-01 … R-LVE-07 | outcomes from rules |
+| D-02 | Swap decisions consistent with team, skill, notice, deadline, apply window and links | outcomes from rules |
+| R-… | Business-rule detectors (R-SCH-01 … 08, R-ATT-01/04, R-OVT-02, R-SWP-06, allowed transitions R-GEN-01 / R-SWP-08), graded against the ground truth | anomalies |
+| A-01 … A-04 | The brief's acceptance criteria | acceptance |
