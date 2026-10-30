@@ -1,8 +1,8 @@
 {
-  "name": "yottaflex-workforce-scheduling",
+  "name": "yottashift",
   "version": "0.1.0",
   "private": true,
-  "description": "Synthetic workforce-scheduling dataset, fair and feasible scheduler, validator and dashboard (leave, shift coverage, skills, labour constraints).",
+  "description": "YottaShift: fair and feasible workforce scheduling (leave, shift coverage, skills, labour constraints) with a seeded synthetic dataset, validator and dashboard.",
   "type": "module",
   "engines": {
     "node": ">=24"
@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --test"
+    "test": "node --test \"test/**/*.test.js\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

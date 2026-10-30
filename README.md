@@ -1,11 +1,13 @@
-# Fair & Feasible Workforce Scheduling
+# YottaShift — Fair & Feasible Workforce Scheduling
 
-YottaFlex AI candidate project. A seeded, reproducible synthetic dataset and a working scheduling
+> Candidate project for the YottaFlex AI recruitment drive. Not an official YottaFlex product.
+
+A seeded, reproducible synthetic dataset and a working scheduling
 workflow that combine **leave requests, shift coverage, skills and labour constraints** into fair
 and feasible schedules, expose every key decision and exception, keep full history, and produce
 measurable outputs.
 
-> **Status:** Phase 0 (setup & planning) complete. Phase-by-phase progress lives in
+> **Status:** Phases 0–1 (setup, domain design, schema) complete. Phase-by-phase progress lives in
 > [tracking.md](tracking.md). Sections marked _(Phase N)_ are filled in as that phase lands.
 
 ---
@@ -93,14 +95,41 @@ npm run lint
 npm run format:check
 ```
 
+`npm test` currently runs the schema suite: the schema loads into SQLite and accepts a fully
+consistent fixture touching all 21 tables; enum, rule and lifecycle lists match between code,
+schema and docs; 17 kinds of broken rows are each rejected by the constraint that should catch
+them; labelled anomalies remain loadable.
+
 _(Phase 6–7: how to read the validation summary and reproducibility report.)_
 
-## 8. Data model _(Phase 1)_
+## 8. Data model
 
-See `docs/data-dictionary.md`, `docs/erd.md` and `docs/business-rules.md`.
+| Document | Contents |
+| --- | --- |
+| [docs/data-dictionary.md](docs/data-dictionary.md) | Every field of all 21 tables: type, required/optional, allowed values, units, uniqueness, validation rule; ID conventions; ground-truth file layout |
+| [docs/erd.md](docs/erd.md) | ER diagram, every FK with cardinality and optionality, N:M bridges, effective dates, lifecycle states |
+| [docs/business-rules.md](docs/business-rules.md) | Actors, the 42 numbered rules (R-xx) behind every outcome, state machines, labelled anomalies, metrics, policy defaults |
+| [sql/schema.sql](sql/schema.sql) | The executable schema (SQLite `STRICT` tables, PK/FK/UNIQUE/CHECK) |
 
-ID conventions from the brief: `EMP-000001`, `SHIFT-2026-01-01-A`, `LVE-2026-000001`,
-`ATT-<employee-id>-<timestamp>`, `SWP-2026-000001`. All counters zero-padded and immutable.
+**Tables.** The 10 core entities from the brief (Employee, Team, Skill, ShiftTemplate,
+ShiftAssignment, LeaveRequest, HolidayCalendar, AttendanceEvent, CoverageRequirement,
+SwapRequest), plus `labor_policy`, the `employee_skill` bridge, `leave_entitlement`, a `shift`
+table (date × template), three append-only event tables and four derived tables.
+
+**IDs.** From the brief: `EMP-000001`, `SHIFT-2026-01-01-A`, `LVE-2026-000001`,
+`ATT-<employee-id>-<timestamp>` (e.g. `ATT-EMP-000001-20260101T055800`), `SWP-2026-000001`.
+Added by this project: `TEAM-001`, `SKL-001`, `POL-FT-2026`, `HOL-2026-01-26`, `COV-000001`,
+`ASG-2026-000001`, events `<parent-id>-E01`, labels `GT-000001`. Counters are zero-padded,
+immutable and identical in every export.
+
+**History.** Leave requests, swap requests and shift assignments keep their current status plus
+an append-only event table. A swap or backfill creates a new assignment that points to the one
+it replaces; nothing is overwritten.
+
+**Integrity split.** The schema rejects structurally broken rows (bad IDs, impossible dates,
+unknown enums, broken FKs, inconsistent derived columns). Cross-row business rules
+(double booking, rest, overtime cap, swap approval) are checked by the validator, so the
+deliberately injected anomalies can be loaded and then detected.
 
 ## 9. Edge cases and ground truth _(Phase 5)_
 
@@ -113,6 +142,10 @@ labelled too.
 - The 90-day window is 2026-01-01 → 2026-03-31, single time zone (Asia/Kolkata, `+05:30`).
 - The published roster (ShiftAssignment) is treated as master data; leave, swaps and attendance
   change it only through appended events.
+- One of the 100 teams is a non-operational Workforce Office holding the HR and operations
+  partners, so every HR decision and manual punch correction traces to a person.
+- Managers, HR partners and ops partners are not rostered; employees stay in one team for the
+  whole window.
 - All data is synthetic. No real people, no external datasets.
 
 Full list: [tracking.md §9](tracking.md#9-open-questions--assumptions).
