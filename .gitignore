@@ -1,0 +1,22 @@
+node_modules/
+client/dist/
+coverage/
+*.log
+.env
+.env.*
+
+# Scratch output from reproducibility runs
+.tmp/
+
+# Full-scale output is regenerated on demand; revisit in Phase 7 once its size is known.
+data/full/
+
+# SQLite side files
+*.db-journal
+*.db-wal
+*.db-shm
+
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
