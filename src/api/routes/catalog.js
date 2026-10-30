@@ -37,6 +37,17 @@ export function catalogRoutes(store) {
     res.json(summary);
   });
 
+  router.get('/reproducibility', (_req, res) => {
+    const report = store.json('reports/reproducibility.json');
+    if (!report) {
+      throw notFound(
+        'Report',
+        `reproducibility.json (run: npm run reproduce -- --profile ${store.profile})`,
+      );
+    }
+    res.json(report);
+  });
+
   router.get('/skills', (_req, res) => {
     res.json({ data: db.prepare('SELECT * FROM skill ORDER BY skill_id').all() });
   });
@@ -47,10 +58,13 @@ export function catalogRoutes(store) {
         `SELECT t.*, m.full_name AS manager_name, h.full_name AS hr_partner_name,
                 (SELECT count(*) FROM employee e WHERE e.team_id = t.team_id
                    AND e.employee_role IN (${ENUMS.SCHEDULABLE_ROLE.map(() => '?').join(', ')})) AS schedulable_members,
-                (SELECT count(*) FROM coverage_status c WHERE c.team_id = t.team_id AND c.status = 'GAP') AS gap_slots
+                coalesce(g.gap_slots, 0) AS gap_slots
          FROM team t
          JOIN employee m ON m.employee_id = t.manager_employee_id
          JOIN employee h ON h.employee_id = t.hr_partner_employee_id
+         -- One grouped pass: coverage_status is keyed by shift first, so a per-team lookup would scan it.
+         LEFT JOIN (SELECT team_id, count(*) AS gap_slots FROM coverage_status WHERE status = 'GAP' GROUP BY team_id) g
+           ON g.team_id = t.team_id
          ORDER BY t.team_id`,
       )
       .all(...ENUMS.SCHEDULABLE_ROLE);
@@ -59,7 +73,15 @@ export function catalogRoutes(store) {
 
   router.get('/teams/:teamId', (req, res) => {
     const teamId = idParam(req.params.teamId, 'team');
-    const team = db.prepare('SELECT * FROM team WHERE team_id = ?').get(teamId);
+    const team = db
+      .prepare(
+        `SELECT t.*, m.full_name AS manager_name, h.full_name AS hr_partner_name
+         FROM team t
+         JOIN employee m ON m.employee_id = t.manager_employee_id
+         JOIN employee h ON h.employee_id = t.hr_partner_employee_id
+         WHERE t.team_id = ?`,
+      )
+      .get(teamId);
     if (!team) throw notFound('Team', teamId);
     res.json({
       ...team,

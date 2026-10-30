@@ -1,6 +1,6 @@
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -67,6 +67,17 @@ describe('API: dataset and reference data', () => {
     assert.equal(body.M04_leave.requests, 160);
   });
 
+  it('serves the reproducibility report, or 404 with the command to create it', async () => {
+    const missing = await get('/reproducibility');
+    assert.equal(missing.status, 404);
+    assert.match(missing.body.error.message, /npm run reproduce -- --profile starter/);
+    const report = { profile: 'starter', seed: 20261022, identical: true };
+    writeFileSync(join(out, 'starter', 'reports', 'reproducibility.json'), JSON.stringify(report));
+    const found = await get('/reproducibility');
+    assert.equal(found.status, 200);
+    assert.deepEqual(found.body, report);
+  });
+
   it('lists teams with managers, members and gap counts', async () => {
     const { body } = await get('/teams');
     assert.equal(body.data.length, 10);
@@ -79,6 +90,7 @@ describe('API: dataset and reference data', () => {
     const { status, body } = await get('/teams/TEAM-001');
     assert.equal(status, 200);
     assert.ok(body.members.length > 5);
+    assert.ok(body.manager_name && body.hr_partner_name);
     assert.ok(body.coverage_requirements.length > 0);
     assert.ok(body.coverage.required >= body.coverage.filled);
   });

@@ -4,6 +4,9 @@
   "private": true,
   "description": "YottaShift: fair and feasible workforce scheduling (leave, shift coverage, skills, labour constraints) with a seeded synthetic dataset, validator and dashboard.",
   "type": "module",
+  "workspaces": [
+    "client"
+  ],
   "engines": {
     "node": ">=24"
   },
@@ -12,6 +15,8 @@
     "validate": "node src/cli/validate.js",
     "reproduce": "node src/cli/reproduce.js",
     "api": "node src/cli/api.js",
+    "client": "npm run dev --workspace client",
+    "client:build": "npm run build --workspace client",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

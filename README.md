@@ -7,11 +7,11 @@ workflow that combine **leave requests, shift coverage, skills and labour constr
 and feasible schedules, expose every key decision and exception, keep full history, and produce
 measurable outputs.
 
-> **Status:** Phases 0–8 complete: setup, domain design and schema, master data, the
+> **Status:** Phases 0–9 complete: setup, domain design and schema, master data, the
 > transaction workflow (leave, scheduling, swaps, attendance), derived values with metrics,
 > labelled anomalies with a separate ground truth, file-level validation with evaluation
 > against that ground truth, CSV / JSON / SQL / SQLite exports with a checksummed manifest and a
-> two-run reproducibility check, and a local Express API. Phase-by-phase progress lives in
+> two-run reproducibility check, a local Express API and a React dashboard. Phase-by-phase progress lives in
 > [tracking.md](tracking.md). Sections marked _(Phase N)_ are filled in as that phase lands.
 
 ---
@@ -52,7 +52,7 @@ truth, validation, and fixed-seed reproducibility.
 | Runtime | Node.js 24 (ES modules) | One language across generator, API and UI |
 | Storage | SQLite via built-in `node:sqlite` | PK/FK and join validation, SQL seed export, no server to install |
 | API | Express 5.2.1 (the only runtime dependency) | Small, familiar; Express 5 forwards thrown errors to one handler |
-| UI | React 19 + Vite _(Phase 9)_ | Dashboard for decisions and exceptions |
+| UI | React 19.3.1 + Vite 8.3.4, hand-built SVG charts | Dashboard for decisions and exceptions; no UI or chart library |
 | Tests | `node:test` | Built in, no extra dependency |
 | Quality | ESLint 10, Prettier 3 | Lint + consistent formatting |
 
@@ -74,7 +74,7 @@ src/export/      CSV, JSON, SQL seed, SQLite DB, manifest, reports
 src/db/          schema loading, table I/O, load order
 src/api/         Express app: dataset store, routes, HTTP helpers
 src/cli/         generate / validate / reproduce entry points
-client/          React dashboard
+client/          React dashboard (npm workspace): views/, components/ (ui, charts)
 test/            unit and integration tests
 data/            generated datasets per profile
 ai-disclosure/   prompt history and AI-usage notes
@@ -168,7 +168,7 @@ ID format, 403 wrong reviewer, 404 unknown ID or route, 422 not applicable). Lis
 | Method & path | Returns | For |
 | --- | --- | --- |
 | `GET /health` | Profile, seed, window, row counts, ground-truth counts | admin |
-| `GET /metrics`, `GET /validation` | `metrics.json`, `validation_summary.json` | admin, HR |
+| `GET /metrics`, `GET /validation`, `GET /reproducibility` | `metrics.json`, `validation_summary.json`, `reproducibility.json` (404 with the command to create it) | admin, HR |
 | `GET /skills`, `GET /teams`, `GET /teams/:teamId` | Teams with manager, HR partner, members, requirements, coverage totals | manager, HR |
 | `GET /employees?teamId&role&employmentType&q`, `GET /employees/:employeeId` | Employee with skills, leave balances, weekly hours and overtime | manager, HR, employee |
 | `GET /employees/:employeeId/schedule?from&to` | Every assignment with shift times, status, history links and attendance outcome | employee, manager |
@@ -187,11 +187,32 @@ and swap requests cannot be approved through the API, because the dataset is a c
 snapshot: every request is already resolved by its documented rule, and changing one would
 rewrite history and break the published checksums.
 
-Still to come:
+### Dashboard
 
-| Command | Does | Phase |
+Start the API first (above), then in a second terminal:
+
+```bash
+npm run client
+```
+
+Open `http://localhost:5173`. Vite forwards `/api` to `http://localhost:3001` (set
+`YOTTASHIFT_API` to use another address). `npm run client:build` writes a static build to
+`client/dist/`.
+
+| View | For | Shows |
 | --- | --- | --- |
-| `npm run client` | Local dashboard | 9 |
+| Overview | HR partner, system administrator | Coverage fill (planned vs clocked in), short slots, overtime breaches, leave and swap approval rates, punctuality, complete records, night-shift fairness, anomalies detected; per-day charts; teams with the most missing hours |
+| Coverage | Manager, IT / ops partner | Per-team daily fill and missing headcount, and every short slot (shift × team × skill) by date |
+| Exceptions | Manager, HR partner, ops partner | Findings by rule, filters, each finding's records, ground-truth label and review trail; adding a review (only the reviewers the API allows are offered) |
+| People | Employee, manager | Search; a person's policy, skills, leave balances and requests, weekly hours against the overtime cap, and full schedule with attendance |
+| Assignment | Manager, ops partner | One assignment's status history, punches, reconciled outcome, and what it replaced or was replaced by |
+| Leave & swaps | Employee, manager, HR partner | Leave and swap requests with the deciding rule, full history and roster changes; the leave what-if form |
+| Validation | System administrator | Status, acceptance criteria, detection per anomaly type, boundary cases, integrity and replay checks, reproducibility |
+
+Every ID in the dashboard links to the view that explains it, and every view has its own URL
+(`#/people/EMP-000101`, `#/requests/swaps/SWP-2026-000002`), so a finding can be shared as a
+link. Charts follow one palette checked for colour-blind separation in light and dark mode,
+and each has a "Show data as table" view.
 
 ### How the master data is generated
 
@@ -308,7 +329,7 @@ npm run lint
 npm run format:check
 ```
 
-`npm test` (222 tests, about 40 s, most of it generating and loading the full profile) covers:
+`npm test` (223 tests, about 40 s, most of it generating and loading the full profile) covers:
 
 - **Schema:** loads into SQLite and accepts a fully consistent fixture touching all 21 tables;
   enum, rule and lifecycle lists match between code, schema and docs; 17 kinds of broken rows
@@ -361,8 +382,8 @@ npm run format:check
   when one JSON value is changed; manifest comparison reports changed checksums, missing files
   and a different seed; `npm run reproduce` reports IDENTICAL and exits 1 when the published
   manifest disagrees.
-- **API (21 tests, against a freshly generated starter dataset):** health, metrics, teams and
-  team detail, employee paging / filters / search and detail; schedules in time order with
+- **API (22 tests, against a freshly generated starter dataset):** health, metrics, the
+  reproducibility report (404 until it exists), teams and team detail with manager and HR partner names, employee paging / filters / search and detail; schedules in time order with
   attendance; coverage gaps equal to the derived table and daily totals; assignment, leave and
   swap histories with their links; what-if outcomes (approval, balance and notice rejections,
   input validation, managers refused, malformed JSON); 15 labelled findings listed with
@@ -479,6 +500,8 @@ Recorded so far:
 - Full-scale data files are not in git (391 MB); they are regenerated in about 21 s and checked
   against the committed manifest. The SQLite file's checksum only matches on the same SQLite
   version (recorded in the manifest).
+- The dashboard has no sign-in: the reviewer is picked from the people the API allows for that
+  finding. That suits a local demo; a real deployment would take the reviewer from the session.
 
 ## 14. Data provenance
 

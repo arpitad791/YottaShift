@@ -5,15 +5,27 @@ export default [
   { ignores: ['node_modules/**', 'data/**', 'client/dist/**', 'coverage/**'] },
   js.configs.recommended,
   {
+    files: ['**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
+      parserOptions: { ecmaFeatures: { jsx: true } },
       globals: { ...globals.node },
     },
     rules: {
       eqeqeq: 'error',
       'prefer-const': 'error',
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  // The dashboard runs in the browser (its Vite config still runs in Node).
+  {
+    files: ['client/src/**/*.{js,jsx}'],
+    languageOptions: { globals: { ...globals.browser } },
+  },
+  {
+    files: ['src/**/*.js', 'test/**/*.js'],
+    rules: {
       // Generated data must be reproducible from the fixed seed.
       'no-restricted-properties': [
         'error',

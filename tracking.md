@@ -16,7 +16,7 @@ traceability matrix and the change log at the end of every phase.
 | Build | Fully local, no paid or hosted services |
 | Stack | Node.js 24 (ESM) · Express 5 · React 19 + Vite · SQLite (built-in `node:sqlite`) · `node:test` · ESLint + Prettier |
 | Fixed seed | `20261022` |
-| Current phase | Phase 8 — done; next: Phase 9 |
+| Current phase | Phase 9 — done; next: Phase 10 |
 
 ## 2. Working agreement
 
@@ -42,8 +42,8 @@ traceability matrix and the change log at the end of every phase.
 | 6 | Validation & evaluation | integrity checks, rule detectors, detector-vs-ground-truth scoring, validation summary | ✅ Done |
 | 7 | Export & reproducibility | CSV / JSON / SQL seed / SQLite DB, source manifest with checksums, two-run reproducibility proof | ✅ Done |
 | 8 | Express API | read endpoints for every entity with full histories; exception reviews (append-only, separate store); leave what-if on the real rule engine | ✅ Done |
-| 9 | React dashboard | manager / HR / ops views of coverage, exceptions, swaps, leave, metrics | ⏳ Next |
-| 10 | Hardening, docs & submission | full-scale timing, clean-clone run, final README, design notes, AI disclosure, submission checklist | ⬜ |
+| 9 | React dashboard | manager / HR / ops views of coverage, exceptions, swaps, leave, metrics | ✅ Done |
+| 10 | Hardening, docs & submission | full-scale timing, clean-clone run, final README, design notes, AI disclosure, submission checklist | ⏳ Next |
 
 Suggested order of priority if time runs short: Phases 1–7 are the graded core (data generation,
 validation, ground truth, reproducibility). Phases 8–9 make decisions and exceptions visible to the
@@ -184,14 +184,20 @@ Results (full profile): reads 3–60 ms; first exceptions computation ≈ 5.4 s 
 Verified 2026-10-30: `npm test` 222/222 (≈ 36 s); lint and format clean; CLI started as a child process, `/health` answered, stopped; dataset files unchanged (SHA-256 test).
 Suggested commit: `feat(api): Express API for schedules, coverage, histories, exceptions and leave what-if`
 
-### Phase 9 — React dashboard
+### Phase 9 — React dashboard ✅
 
-- [ ] Add `"workspaces": ["client"]` to the root `package.json` once `client/package.json` exists (npm fails on an empty workspace folder)
-- [ ] `client/` (Vite + React): Overview KPIs; Coverage (gaps by date/team/skill); Exceptions (detected anomalies + ground-truth match); Employee schedule with history trail; Leave and Swap queues for managers; Validation report
-- [ ] Each view maps to an actor: manager, HR partner, IT/ops partner, system administrator, employee
-- [ ] Builds with `npm run build`; no heavy UI libraries
+- [x] `"workspaces": ["client"]` in the root `package.json`; `client/` pins React 19.3.1, Vite 8.3.4 and `@vitejs/plugin-react` 6.1.2 exactly; `npm run client` (dev server, `/api` proxied to port 3001) and `npm run client:build`
+- [x] Views ([`client/src/views/`](client/src/views/)): Overview KPIs and per-day charts; Coverage per team (daily fill, missing headcount, short slots by date); Exceptions (findings by rule, filters, records, ground-truth label, review trail, add a review); People (search; policy, skills, balances, leave, weekly hours vs cap, full schedule); Assignment history (events, punches, reconciliation, supersede links); Leave & swaps (lists, decision rule, history, roster effects / created assignments) plus the leave what-if; Validation (acceptance, detection, boundaries, checks, reproducibility)
+- [x] Each view names its actors (manager, HR partner, IT/ops partner, system administrator, employee); the review form offers only the reviewers the API accepts
+- [x] Hash routes for every view and record; every ID links to the view that explains it
+- [x] Charts hand-built in SVG (no chart or UI library): palette run through the dataviz validator in light and dark mode, 2 px lines, legend + selective end labels, hover tooltip, a "Show data as table" view per chart; status always icon + label, never colour alone
+- [x] API additions found while building: `GET /reproducibility`; team detail returns manager and HR partner names; `/teams` gap count as one grouped join (D-60)
+- [x] Tests — 1 new, 1 extended ([`api.test.js`](test/api.test.js)): 223 total
 
-Exit criteria: dashboard runs against the API locally. Suggested commit: `feat(client): dashboard for coverage, exceptions and approvals`
+Changed from the plan: "Leave and Swap queues for managers" became read-only request views with the deciding rule and history, plus the what-if, because requests are not approvable through the API (D-51).
+Results: production build 271 KB JS (83 KB gzip), 5 KB CSS. Checked in the browser pane against the full profile: all seven views load with no console errors; a review added through the form appears in the trail and the list; the what-if returns an approval and an R-LVE-03 rejection; no horizontal scroll at 375 px on any view; light and dark mode. API reads behind the views 14–30 ms.
+Verified 2026-10-30: `npm test` 223/223; lint and format clean; `npm run client:build` passes.
+Suggested commit: `feat(client): React dashboard for coverage, exceptions, people, requests and validation`
 
 ### Phase 10 — Hardening, docs & submission
 
@@ -217,11 +223,11 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | ID | Requirement | Phase | Evidence |
 | --- | --- | --- | --- |
 | B-01 | Combine leave, shift coverage, skills and labour constraints into fair and feasible schedules | 3, 4 | ✅ scheduler combines approved leave, coverage per skill, skill validity and labour limits; fairness key + Jain indices (nights 0.977, hours 0.994) · metrics Phase 4 |
-| B-02 | Expose key decisions and exceptions | 3, 6, 8, 9 | ✅ decision rule ID + reason on every leave/swap decision; `validation_summary`; API exposes decisions with rule text, histories and exceptions (+ review trail) · UI Phase 9 |
+| B-02 | Expose key decisions and exceptions | 3, 6, 8, 9 | ✅ decision rule ID + reason on every leave/swap decision; `validation_summary`; API exposes decisions with rule text, histories and exceptions (+ review trail); dashboard Exceptions, Leave & swaps and Validation views |
 | B-03 | Preserve traceability | 1, 3 | ✅ append-only events for leave (10,089), swaps (3,522), assignments (98,772); `supersedes_assignment_id` and `swap_id` links |
 | B-04 | Measurable outputs | 4, 6 | ✅ 4 derived tables + `metrics.json` / `metrics.md` (M-01 … M-08) · validation summary Phase 6 |
 | B-05 | Medium complexity: multiple related entities, conditional rules, ≥1 exception path, meaningful evaluation metrics | 1, 3, 6 | ✅ 21 tables, 42 rules, exception paths in data (rejections, expiries, cancellations, backfills, gaps, no-shows, missing punches) · metrics Phases 4/6 |
-| B-06 | Actors: employee, manager, HR partner, IT/ops partner, system administrator | 1, 9 | ✅ actor matrix (business rules §1); API endpoints per actor and review permissions by role (manager / HR partner / ops partner) · dashboard views Phase 9 |
+| B-06 | Actors: employee, manager, HR partner, IT/ops partner, system administrator | 1, 9 | ✅ actor matrix (business rules §1); API endpoints per actor and review permissions by role (manager / HR partner / ops partner); each dashboard view names its actors |
 | W-01 | Master data first: Employee, Team, Skill, ShiftTemplate, ShiftAssignment | 2, 3 | ✅ master data first, then transactions (`generateDataset`) |
 | W-02 | Dependent records use valid parent IDs | 2–3, 6 | ✅ every row loaded into the schema with FKs checked (generate CLI + tests) |
 | W-03 | Teams, skills, shift templates | 2 | ✅ 100 teams, 30 skills, 4 templates (full profile) |
@@ -324,7 +330,7 @@ The full design lives in the docs; this is the one-screen summary.
 YottaFlex.ai/  (repo: YottaShift)
 ├── README.md               # how to install, run, verify; decisions; limitations
 ├── tracking.md             # this file
-├── package.json            # root package (generator, validator, API); client workspace added in Phase 9
+├── package.json            # root package (generator, validator, API) + `client` workspace
 ├── config/                 # ✅ generator.config.json — seed, starter/full profiles, workforce, skills, coverage
 ├── sql/schema.sql          # ✅ 21 STRICT tables
 ├── docs/                   # ✅ data-dictionary.md, erd.md, business-rules.md; design-notes.md (Phase 10)
@@ -339,7 +345,8 @@ YottaFlex.ai/  (repo: YottaShift)
 │   ├── db/                 # ✅ database.js (schema, load order, load / read all tables)
 │   ├── api/                # ✅ app.js, store.js, http.js, routes/ (catalog, roster, requests, exceptions)
 │   └── cli/                # ✅ generate.js, validate.js, reproduce.js, api.js
-├── client/                 # React + Vite dashboard (workspace)
+├── client/                 # ✅ React + Vite dashboard: src/{App, api, format}, components/ (ui, charts), views/ (7)
+├── .claude/launch.json     # dev-server definitions (API + Vite) used for the browser check
 ├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive, anomalies, validation, export, api tests
 ├── data/                   # ✅ <profile>/{csv,json,sql,sqlite,ground_truth,reports}, manifest.json; starter committed; full: manifest, reports, ground truth only
 └── ai-disclosure/          # prompt history and AI-usage notes
@@ -404,6 +411,11 @@ YottaFlex.ai/  (repo: YottaShift)
 | D-53 | 2026-10-30 | Leave what-if runs the same pure rule engine as the generator and validator | One implementation of the leave policy, so the explanation can never disagree with the data | A separate simplified check |
 | D-54 | 2026-10-30 | Stable finding IDs: `FND-` + hash of rule, kind and record IDs | Reviews keep pointing at the same finding across restarts and regenerations | Positional IDs |
 | D-55 | 2026-10-30 | Express pinned to an exact version (5.2.1) | Reproducible installs for reviewers; the only runtime dependency | Caret range |
+| D-56 | 2026-10-30 | Charts hand-built in SVG with one validated palette; no chart or UI library | Few chart types needed; full control of accessibility (legend, table view, tooltips) and dark mode; small bundle | Recharts / Chart.js, a component kit |
+| D-57 | 2026-10-30 | Hash router written in a few lines | Every view and record has a shareable URL and the static build needs no server rewrite rules; no extra dependency | React Router |
+| D-58 | 2026-10-30 | Client imports enum lists from `src/domain/constants.js` (Vite `fs.allow`) | One source of truth for statuses and types shared by schema, generator, API and UI | Copying the lists into the client |
+| D-59 | 2026-10-30 | Vite dev proxy `/api` → port 3001 | Same origin in the browser, so the API needs no CORS setup | CORS middleware in Express |
+| D-60 | 2026-10-30 | `/teams` gap count from one grouped join instead of a per-team subquery | `coverage_status` is keyed by shift first, so each team's count scanned 46k rows: 758 ms → 14–24 ms, same numbers | Extra index on `coverage_status (team_id)` |
 
 ## 9. Open questions & assumptions
 
@@ -446,3 +458,4 @@ YottaFlex.ai/  (repo: YottaShift)
 | 2026-10-30 | 6 | `npm run validate`: file reader, 12 integrity checks, leave replay and swap decision checks, ground-truth evaluation (M-09), acceptance A-01 … A-04, JSON + Markdown summary; shared `LOAD_ORDER`; 20 new tests (192 total). Full profile PASS from files. Decisions D-40 … D-45 |
 | 2026-10-30 | 7 | JSON, SQL seed and SQLite exports; manifest with checksums, provenance and environment; `npm run reproduce` (two runs + published manifest); I-13 format agreement in validation; `.gitignore` keeps full manifest / reports / ground truth; 9 new tests (201 total). Both profiles: 48 / 48 files byte-identical. Decisions D-46 … D-50, Q-04 resolved |
 | 2026-10-30 | 8 | Express API (`npm run api`): read endpoints for every entity with histories, coverage, exceptions with ground-truth match, append-only exception reviews in a separate store, leave what-if on the real rule engine; validation and one error shape; 21 new tests (222 total). Leave/swap approval endpoints dropped by design (D-51). Decisions D-51 … D-55 |
+| 2026-10-30 | 9 | React dashboard (`npm run client`): Overview, Coverage, Exceptions (with reviews), People, Assignment, Leave & swaps (with what-if) and Validation views; hand-built SVG charts on a validated palette; hash routes; `GET /reproducibility`, manager / HR partner names on team detail, faster `/teams`; 1 new test (223 total); checked in the browser at desktop and 375 px, light and dark. Decisions D-56 … D-60 |
