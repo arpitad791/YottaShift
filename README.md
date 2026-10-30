@@ -7,10 +7,11 @@ workflow that combine **leave requests, shift coverage, skills and labour constr
 and feasible schedules, expose every key decision and exception, keep full history, and produce
 measurable outputs.
 
-> **Status:** Phases 0–6 complete: setup, domain design and schema, master data, the
+> **Status:** Phases 0–7 complete: setup, domain design and schema, master data, the
 > transaction workflow (leave, scheduling, swaps, attendance), derived values with metrics,
-> labelled anomalies with a separate ground truth, and file-level validation with evaluation
-> against that ground truth. Phase-by-phase progress lives in
+> labelled anomalies with a separate ground truth, file-level validation with evaluation
+> against that ground truth, and CSV / JSON / SQL / SQLite exports with a checksummed manifest
+> and a two-run reproducibility check. Phase-by-phase progress lives in
 > [tracking.md](tracking.md). Sections marked _(Phase N)_ are filled in as that phase lands.
 
 ---
@@ -37,8 +38,12 @@ truth, validation, and fixed-seed reproducibility.
   kept apart from the input tables
 - ✅ Validation summary (`reports/validation_summary.json` + `.md`): integrity, decision replay,
   detection precision/recall against the ground truth (M-09), acceptance criteria
-- _(Phase 7)_ JSON, SQL seed and SQLite database exports; source manifest (row counts +
-  SHA-256); reproducibility report
+- ✅ Every table as CSV and JSON, a SQL seed (`sql/seed.sql`) and a ready SQLite database
+  (`sqlite/yottashift.db`) — all four hold identical data
+- ✅ `manifest.json`: command, seed, generator version, config hash, environment, provenance,
+  policy, and rows / bytes / SHA-256 of every file
+- ✅ Reproducibility report (`reports/reproducibility.json` + `.md`): two fresh runs compared
+  file by file, and against the published manifest
 
 ## 3. Tech stack
 
@@ -65,7 +70,7 @@ src/generator/   master data → transactions → events → anomalies
 src/scheduler/   roster state (hard rules, fairness key) and the weekly scheduler
 src/derive/      derived tables (overtime, coverage, balances, reconciliation) and metrics
 src/validation/  file reader, integrity checks, decision replay, detectors, evaluation, summary
-src/export/      CSV, JSON, SQL seed, SQLite DB, manifest
+src/export/      CSV, JSON, SQL seed, SQLite DB, manifest, reports
 src/db/          SQLite access for the API
 src/api/         Express app
 src/cli/         generate / validate / reproduce entry points
@@ -94,43 +99,63 @@ npm run generate -- --profile full
 ```
 
 Both profiles use the same generator and seed (`20261022`); only the scale differs
-(`config/generator.config.json`). Output goes to `data/<profile>/csv/` (one file per table)
-and `data/<profile>/reports/` (`metrics.json`, `metrics.md`). Before writing, the run loads
-every row into an in-memory copy of `sql/schema.sql`, so a constraint violation stops it with an
-error and no files are written. Options: `--out <dir>` (default `data`), `--config <file>`.
+(`config/generator.config.json`). Options: `--out <dir>` (default `data`), `--config <file>`.
+Everything goes to `data/<profile>/` (layout: [data dictionary §12](docs/data-dictionary.md#12-export-files)):
+
+```
+data/<profile>/
+├── sqlite/yottashift.db      schema + every row, ready to query (built first: the integrity gate)
+├── csv/<table>.csv           21 tables
+├── json/<table>.json         the same rows as JSON
+├── sql/seed.sql              data-only INSERTs; load after sql/schema.sql
+├── ground_truth/             labels, kept apart from the inputs
+├── reports/                  metrics, validation summary, reproducibility report
+└── manifest.json             rows, bytes and SHA-256 of every file + seed, config, provenance
+```
+
+The SQLite database is written first: loading it enforces every type, CHECK and foreign key of
+`sql/schema.sql`, so a bad row stops the run before any other file is written.
+
+**What is in git:** `data/starter/` is committed in full as the sample (12 MB). The full profile
+is 391 MB (the SQLite file alone is above GitHub's 100 MB limit), so only its `manifest.json`,
+`reports/` and `ground_truth/` are committed; regenerate the data with the command above and
+check it against the published checksums with `npm run reproduce -- --profile full`.
 
 | Profile | Teams | Employees | Days | Leave requests | Swap requests |
 | --- | --- | --- | --- | --- | --- |
 | `starter` | 10 | 200 | 28 | 160 | 60 |
 | `full` | 100 | 2,000 | 90 | 5,000 | 1,500 |
 
-Currently generated (Phases 2–4): all 21 tables. Full profile:
+Full profile, as published (including the labelled anomalies of §9):
 
 | Master data | Rows | Transactions and events | Rows | Derived | Rows |
 | --- | --- | --- | --- | --- | --- |
 | labour policies | 2 | leave requests | 5,000 | employee week summary | 25,948 |
 | skills | 30 | leave request events | 10,089 | coverage status | 46,320 |
-| teams | 100 | shift assignments | 95,930 | leave balance | 5,658 |
-| employees | 2,000 | shift assignment events | 98,772 | attendance reconciliation | 93,088 |
+| teams | 100 | shift assignments | 95,970 | leave balance | 5,658 |
+| employees | 2,000 | shift assignment events | 98,812 | attendance reconciliation | 93,128 |
 | employee skills | 3,179 | swap requests | 1,500 | | |
-| leave entitlements | 5,658 | swap request events | 3,522 | | |
-| shift templates / holidays / shifts | 4 / 5 / 360 | attendance events | 184,535 | | |
+| leave entitlements | 5,658 | swap request events | 3,502 | | |
+| shift templates / holidays / shifts | 4 / 5 / 360 | attendance events | 184,575 | | |
 | coverage requirements | 1,490 | | | | |
 
-A full run takes about 15 s (about 4 s to generate and derive, the rest for SQLite to load and
-constraint-check 570,000 rows) and writes 60 MB. The starter profile takes under 1 s.
+A full run takes about 21 s and writes 391 MB (CSV 60 MB, JSON 152 MB, SQL seed 77 MB,
+SQLite 103 MB). The starter profile takes about 1 s.
 
-Then validate what was written (see [§7](#7-verify)):
+Then validate what was written and prove it is reproducible (see [§7](#7-verify)):
 
 ```bash
 npm run validate -- --profile full
+```
+
+```bash
+npm run reproduce -- --profile full
 ```
 
 Still to come:
 
 | Command | Does | Phase |
 | --- | --- | --- |
-| `npm run reproduce` | Generate twice with seed `20261022` and compare row counts + checksums | 7 |
 | `npm run api` / `npm run client` | Local API and dashboard | 8–9 |
 
 ### How the master data is generated
@@ -222,11 +247,12 @@ npm run validate -- --profile full
 
 The validator reads **only the exported files** (`data/<profile>/csv/` and `ground_truth/`),
 writes `data/<profile>/reports/validation_summary.json` and `.md`, prints a summary and exits
-with code 1 if anything is wrong. Full profile: about 17 s, **PASS**.
+with code 1 if anything is wrong. Full profile: about 29 s, **PASS**.
 
 | Section | What it proves | Full profile |
 | --- | --- | --- |
 | I-01 … I-12 structural integrity | Files and headers; load into the schema (types, CHECKs, FKs); PK and unique keys; all 47 FK columns; enums; ID formats; date order; duplicates and overlapping ranges; event-chain structure; cross-table consistency; derived tables recompute exactly | 0 failures over 583,330 rows (1.4 M FK lookups, 1.8 M ID checks) |
+| I-13 export formats | JSON, SQL seed and SQLite database hold exactly the CSV rows (same order, same values) | 63 / 63 table comparisons identical |
 | D-01 leave replay | Every leave decision re-run through R-LVE-01 … R-LVE-07 from the exported data | 5,000 / 5,000 identical |
 | D-02 swap decisions | Team, skill, notice, deadline, apply window and links consistent with each outcome | 7,075 checks, 0 failures |
 | Detection (M-09) | Detector findings vs ground truth: precision and recall per type, boundary cases, confusion table, unexplained findings | 100 / 100 detected, precision 100 %, 0 / 40 boundary flagged, 0 unexplained |
@@ -247,7 +273,7 @@ npm run lint
 npm run format:check
 ```
 
-`npm test` (192 tests, about 30 s, most of it generating and loading the full profile) covers:
+`npm test` (201 tests, about 40 s, most of it generating and loading the full profile) covers:
 
 - **Schema:** loads into SQLite and accepts a fully consistent fixture touching all 21 tables;
   enum, rule and lifecycle lists match between code, schema and docs; 17 kinds of broken rows
@@ -293,11 +319,31 @@ npm run format:check
   D-02) fails on a purpose-built broken copy**; evaluation fails when a label is missing (finding
   outside the labels), when a label points at a clean record (recall < 1) and when a boundary
   sits on a violating record; the CLI exits 1 after a team row is removed from `team.csv`.
+- **Exports and reproducibility:** every table written as CSV and JSON plus seed, database,
+  ground truth and metrics; the manifest's rows and SHA-256 match every file and it carries no
+  run timestamp; the database passes `PRAGMA integrity_check` and FK checks with the right row
+  counts; the seed loads into a fresh schema with FKs on; validation passes with I-13 and fails
+  when one JSON value is changed; manifest comparison reports changed checksums, missing files
+  and a different seed; `npm run reproduce` reports IDENTICAL and exits 1 when the published
+  manifest disagrees.
 - **CLI:** writes one CSV per table with schema-ordered headers, `metrics.json` / `metrics.md`,
   and the ground truth in its own folder (never next to the CSVs); fails cleanly on an unknown
   profile.
 
-_(Phase 7: the reproducibility report.)_
+### Reproducibility
+
+```bash
+npm run reproduce -- --profile full
+```
+
+Generates the profile twice from scratch into temporary folders with seed `20261022`, compares
+the row count, size and SHA-256 of all 48 output files, and compares them with the published
+`data/<profile>/manifest.json`. Writes `reports/reproducibility.{json,md}`; exits 1 on any
+difference. Result for the full profile: **48 / 48 files identical** across the two runs and
+with the published manifest (391 MB, including the SQLite binary). No output file contains the
+time it was generated, which is what makes this possible. The database file's header records the
+SQLite version, so if Node/SQLite differ from the manifest's `environment`, that one file is
+reported separately and every other file must still match.
 
 ## 8. Data model
 
@@ -387,12 +433,20 @@ Recorded so far:
   injected rows apart. Renumbering would change baseline IDs, which must stay immutable.
 - The starter profile is too small to place a swap exactly at the notice limit; the full profile
   has all reachable boundary types.
+- Full-scale data files are not in git (391 MB); they are regenerated in about 21 s and checked
+  against the committed manifest. The SQLite file's checksum only matches on the same SQLite
+  version (recorded in the manifest).
 
 ## 14. Data provenance
 
 Every record is generated by this repository's code from seed `20261022`. No external or personal
-data is used. If a public reference is ever used, its URL, version, retrieval date, licence,
-attribution, transformations and discarded fields will be listed here and in the manifest.
+data is used: names are random combinations of common given names and surnames, and the holiday
+calendar is a synthetic company calendar modelled on common Indian holidays (not an
+authoritative list). Each profile's `manifest.json` records this provenance together with the
+generator version, the SHA-256 of the configuration, the Node and SQLite versions, and the
+checksum of every output file. If a public reference were ever used, its URL, version,
+retrieval date, licence, attribution, transformations and discarded fields would be listed here
+and in the manifest.
 
 ## 15. AI usage
 

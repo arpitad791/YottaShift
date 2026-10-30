@@ -1,0 +1,288 @@
+{
+  "status": "PASS",
+  "problems": [],
+  "rows": {
+    "labor_policy": 2,
+    "skill": 30,
+    "team": 100,
+    "employee": 2000,
+    "employee_skill": 3179,
+    "leave_entitlement": 5658,
+    "shift_template": 4,
+    "holiday_calendar": 5,
+    "shift": 360,
+    "coverage_requirement": 1490,
+    "leave_request": 5000,
+    "leave_request_event": 10089,
+    "shift_assignment": 95970,
+    "swap_request": 1500,
+    "swap_request_event": 3502,
+    "shift_assignment_event": 98812,
+    "attendance_event": 184575,
+    "employee_week_summary": 25948,
+    "coverage_status": 46320,
+    "leave_balance": 5658,
+    "attendance_reconciliation": 93128
+  },
+  "integrity": [
+    {
+      "id": "I-01",
+      "name": "Every table file present with the schema header",
+      "checked": 21,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-02",
+      "name": "Loads into sql/schema.sql (types, CHECK constraints, foreign keys)",
+      "checked": 583330,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-03",
+      "name": "Primary keys unique and not null",
+      "checked": 583330,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-04",
+      "name": "Unique / natural keys have no duplicates",
+      "checked": 114492,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-05",
+      "name": "Every foreign key resolves (all joins)",
+      "checked": 1422115,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-06",
+      "name": "Enum columns hold allowed values",
+      "checked": 1089500,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-07",
+      "name": "IDs follow the documented formats",
+      "checked": 1823700,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-08",
+      "name": "Dates and timestamps in order",
+      "checked": 303151,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-09",
+      "name": "No duplicate records or overlapping effective ranges",
+      "checked": 98145,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-10",
+      "name": "Event chains complete: seq 1…n, linked statuses, time order, status = last event",
+      "checked": 102470,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-11",
+      "name": "Cross-table consistency of roles, policies, skills, calendar and IDs",
+      "checked": 308777,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-12",
+      "name": "Derived tables recompute exactly from the source tables (arithmetic reconciliation)",
+      "checked": 171054,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "I-13",
+      "name": "JSON, SQL seed and SQLite database hold exactly the CSV data",
+      "checked": 63,
+      "failures": 0,
+      "samples": []
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D-01",
+      "name": "Leave decisions replay exactly from the rules (R-LVE-01 … R-LVE-07)",
+      "checked": 5000,
+      "failures": 0,
+      "samples": []
+    },
+    {
+      "id": "D-02",
+      "name": "Swap decisions consistent with R-SWP-01 … R-SWP-07",
+      "checked": 7075,
+      "failures": 0,
+      "samples": []
+    }
+  ],
+  "findings": {
+    "R-ATT-04 EXCEPTION": 160,
+    "R-OVT-02 VIOLATION": 20,
+    "R-SCH-01 VIOLATION": 20,
+    "R-SCH-02 VIOLATION": 20,
+    "R-SCH-03 VIOLATION": 20,
+    "R-SWP-06 VIOLATION": 20,
+    "R-SWP-08 VIOLATION": 20
+  },
+  "evaluation": {
+    "matching": "same issue_type and at least one shared record ID",
+    "per_type": [
+      {
+        "issue_type": "DOUBLE_BOOKED",
+        "labels": 20,
+        "findings": 20,
+        "true_positives": 20,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "precision": 1,
+        "recall": 1,
+        "missed": []
+      },
+      {
+        "issue_type": "LEAVE_OVERLAP",
+        "labels": 20,
+        "findings": 20,
+        "true_positives": 20,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "precision": 1,
+        "recall": 1,
+        "missed": []
+      },
+      {
+        "issue_type": "SKILL_ABSENT",
+        "labels": 20,
+        "findings": 20,
+        "true_positives": 20,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "precision": 1,
+        "recall": 1,
+        "missed": []
+      },
+      {
+        "issue_type": "OVERTIME_CAP_EXCEEDED",
+        "labels": 20,
+        "findings": 20,
+        "true_positives": 20,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "precision": 1,
+        "recall": 1,
+        "missed": []
+      },
+      {
+        "issue_type": "SWAP_WITHOUT_APPROVAL",
+        "labels": 20,
+        "findings": 20,
+        "true_positives": 20,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "precision": 1,
+        "recall": 1,
+        "missed": []
+      }
+    ],
+    "overall": {
+      "anomaly_labels": 100,
+      "detected": 100,
+      "recall": 1,
+      "typed_findings": 100,
+      "false_positives": 0,
+      "precision": 1
+    },
+    "boundary": {
+      "labels": 40,
+      "flagged": 0,
+      "by_type": {
+        "BOUNDARY_OVERTIME_AT_CAP": {
+          "labels": 10,
+          "flagged": 0
+        },
+        "BOUNDARY_LEAVE_ADJACENT_SHIFT": {
+          "labels": 10,
+          "flagged": 0
+        },
+        "BOUNDARY_CONSECUTIVE_DAYS_AT_MAX": {
+          "labels": 10,
+          "flagged": 0
+        },
+        "BOUNDARY_SWAP_AT_NOTICE_LIMIT": {
+          "labels": 10,
+          "flagged": 0
+        }
+      },
+      "flagged_ids": []
+    },
+    "confusion": {
+      "DOUBLE_BOOKED": {
+        "DOUBLE_BOOKED": 20
+      },
+      "LEAVE_OVERLAP": {
+        "LEAVE_OVERLAP": 20
+      },
+      "SKILL_ABSENT": {
+        "SKILL_ABSENT": 20
+      },
+      "OVERTIME_CAP_EXCEEDED": {
+        "OVERTIME_CAP_EXCEEDED": 20
+      },
+      "SWAP_WITHOUT_APPROVAL": {
+        "SWAP_WITHOUT_APPROVAL": 20
+      }
+    },
+    "secondary_findings": {
+      "total": 20,
+      "on_labelled_records": 20,
+      "unexplained": 0,
+      "by_rule": {
+        "R-SWP-08": 20
+      },
+      "unexplained_samples": []
+    }
+  },
+  "acceptance": [
+    {
+      "id": "A-01",
+      "criterion": "Coverage requirements are met or gaps reported",
+      "passed": true,
+      "evidence": "46320 requirement slots; 686 reported as GAP in coverage_status, which recomputes exactly from the roster (I-12); an assignee without the skill never counts as cover (qualified vs assigned headcount)"
+    },
+    {
+      "id": "A-02",
+      "criterion": "Working-hour constraints hold (rest, consecutive days, weekly hours, overtime cap)",
+      "passed": true,
+      "evidence": "20 working-time findings, 20 of them on labelled anomalies; 0 unexplained"
+    },
+    {
+      "id": "A-03",
+      "criterion": "Attendance reconciles with schedules",
+      "passed": true,
+      "evidence": "93128 due assignments; 92968 (99.83 %) with a complete record; 160 uncorrected missing clock-outs reported as exceptions; 0 R-ATT-01 violations required"
+    },
+    {
+      "id": "A-04",
+      "criterion": "Swap history is preserved",
+      "passed": true,
+      "evidence": "1500 swaps with complete event chains (I-10); applied swaps link old and new assignments (D-02); 20 R-SWP-08 findings, all on labelled unapproved swaps: true"
+    }
+  ]
+}

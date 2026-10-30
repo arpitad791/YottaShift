@@ -1,0 +1,4 @@
+[
+{"policy_id":"POL-FT-2026","employment_type":"FULL_TIME","contracted_weekly_hours":40,"max_weekly_scheduled_hours":48,"weekly_overtime_cap_hours":12,"min_rest_hours":11,"max_consecutive_days":6,"effective_from":"2026-01-01","effective_to":null},
+{"policy_id":"POL-PT-2026","employment_type":"PART_TIME","contracted_weekly_hours":24,"max_weekly_scheduled_hours":32,"weekly_overtime_cap_hours":8,"min_rest_hours":11,"max_consecutive_days":6,"effective_from":"2026-01-01","effective_to":null}
+]

@@ -10,6 +10,7 @@
   "scripts": {
     "generate": "node src/cli/generate.js",
     "validate": "node src/cli/validate.js",
+    "reproduce": "node src/cli/reproduce.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

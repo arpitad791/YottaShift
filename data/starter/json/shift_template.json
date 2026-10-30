@@ -1,0 +1,6 @@
+[
+{"template_code":"A","template_name":"Morning","start_time":"06:00","end_time":"14:00","duration_minutes":480,"is_overnight":0,"is_night":0,"effective_from":"2020-01-01","effective_to":null},
+{"template_code":"B","template_name":"Evening","start_time":"14:00","end_time":"22:00","duration_minutes":480,"is_overnight":0,"is_night":0,"effective_from":"2020-01-01","effective_to":null},
+{"template_code":"C","template_name":"Night","start_time":"22:00","end_time":"06:00","duration_minutes":480,"is_overnight":1,"is_night":1,"effective_from":"2020-01-01","effective_to":null},
+{"template_code":"G","template_name":"General","start_time":"09:00","end_time":"17:00","duration_minutes":480,"is_overnight":0,"is_night":0,"effective_from":"2020-01-01","effective_to":null}
+]

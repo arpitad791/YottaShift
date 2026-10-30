@@ -1,0 +1,1259 @@
+{
+  "M01_coverage_fill": {
+    "requirement_slots": 46320,
+    "required_headcount": 93932,
+    "filled_headcount": 93070,
+    "fill_rate": 0.9908,
+    "attended_headcount": 91587,
+    "attended_fill_rate": 0.975
+  },
+  "M02_gaps": {
+    "gap_slots": 686,
+    "gap_headcount": 862,
+    "gap_headcount_hours": 6896,
+    "attended_gap_headcount": 2345,
+    "by_template": {
+      "A": {
+        "gap_slots": 212,
+        "gap_headcount": 228,
+        "gap_headcount_hours": 1824
+      },
+      "B": {
+        "gap_slots": 194,
+        "gap_headcount": 228,
+        "gap_headcount_hours": 1824
+      },
+      "C": {
+        "gap_slots": 71,
+        "gap_headcount": 77,
+        "gap_headcount_hours": 616
+      },
+      "G": {
+        "gap_slots": 209,
+        "gap_headcount": 329,
+        "gap_headcount_hours": 2632
+      }
+    },
+    "by_day_type": {
+      "HOLIDAY": {
+        "gap_slots": 4,
+        "gap_headcount": 4,
+        "gap_headcount_hours": 32
+      },
+      "WEEKDAY": {
+        "gap_slots": 627,
+        "gap_headcount": 798,
+        "gap_headcount_hours": 6384
+      },
+      "WEEKEND": {
+        "gap_slots": 55,
+        "gap_headcount": 60,
+        "gap_headcount_hours": 480
+      }
+    },
+    "by_team_function": {
+      "CUSTOMER_SUPPORT": {
+        "gap_slots": 132,
+        "gap_headcount": 137,
+        "gap_headcount_hours": 1096
+      },
+      "FACILITIES": {
+        "gap_slots": 170,
+        "gap_headcount": 232,
+        "gap_headcount_hours": 1856
+      },
+      "FIELD_SERVICE": {
+        "gap_slots": 100,
+        "gap_headcount": 192,
+        "gap_headcount_hours": 1536
+      },
+      "IT_NOC": {
+        "gap_slots": 48,
+        "gap_headcount": 49,
+        "gap_headcount_hours": 392
+      },
+      "SECURITY": {
+        "gap_slots": 136,
+        "gap_headcount": 147,
+        "gap_headcount_hours": 1176
+      },
+      "WAREHOUSE": {
+        "gap_slots": 100,
+        "gap_headcount": 105,
+        "gap_headcount_hours": 840
+      }
+    },
+    "worst_teams": [
+      {
+        "team_id": "TEAM-031",
+        "team_name": "Field Service BLR 04",
+        "gap_slots": 68,
+        "gap_headcount": 157,
+        "gap_headcount_hours": 1256
+      },
+      {
+        "team_id": "TEAM-053",
+        "team_name": "Facilities CHN 03",
+        "gap_slots": 64,
+        "gap_headcount": 99,
+        "gap_headcount_hours": 792
+      },
+      {
+        "team_id": "TEAM-097",
+        "team_name": "Security BLR 07",
+        "gap_slots": 55,
+        "gap_headcount": 62,
+        "gap_headcount_hours": 496
+      },
+      {
+        "team_id": "TEAM-044",
+        "team_name": "Facilities CHN 02",
+        "gap_slots": 44,
+        "gap_headcount": 60,
+        "gap_headcount_hours": 480
+      },
+      {
+        "team_id": "TEAM-070",
+        "team_name": "Facilities BLR 03",
+        "gap_slots": 39,
+        "gap_headcount": 50,
+        "gap_headcount_hours": 400
+      }
+    ]
+  },
+  "M03_overtime": {
+    "employee_weeks": 25948,
+    "weeks_with_overtime": 7371,
+    "total_overtime_hours": 17591.69,
+    "overtime_hours_p50": 1.17,
+    "overtime_hours_p90": 8,
+    "overtime_hours_max": 13.48,
+    "cap_breaches": 20,
+    "scheduled_vs_contracted": 0.8341
+  },
+  "M04_leave": {
+    "requests": 5000,
+    "by_status": {
+      "APPROVED": 3696,
+      "CANCELLED": 89,
+      "REJECTED": 1122,
+      "WITHDRAWN": 93
+    },
+    "approval_rate_by_type": {
+      "ANNUAL": 0.6338,
+      "CASUAL": 0.7913,
+      "SICK": 0.9149,
+      "UNPAID": 0.8122
+    },
+    "rejections_by_reason": {
+      "EMPLOYEE_NOT_ACTIVE": 3,
+      "INSUFFICIENT_BALANCE": 557,
+      "INSUFFICIENT_NOTICE": 159,
+      "OVERLAPS_EXISTING_LEAVE": 237,
+      "TEAM_LEAVE_CAP_REACHED": 166
+    },
+    "decided_by_role": {
+      "HR_PARTNER": 568,
+      "MANAGER": 2894,
+      "SYSTEM": 1445
+    },
+    "requested_days_approved": 7428
+  },
+  "M05_swaps": {
+    "requests": 1500,
+    "by_status": {
+      "APPLIED": 522,
+      "CANCELLED": 70,
+      "EXPIRED": 158,
+      "REJECTED": 750
+    },
+    "by_type": {
+      "COVER": 587,
+      "SWAP": 913
+    },
+    "approval_rate_of_decided": 0.401,
+    "expiry_rate": 0.1053,
+    "rejections_by_reason": {
+      "ASSIGNMENT_CHANGED": 3,
+      "CONSECUTIVE_DAYS_BREACH": 10,
+      "DOUBLE_BOOKING": 165,
+      "INSUFFICIENT_NOTICE": 61,
+      "NOT_SAME_TEAM": 33,
+      "ON_APPROVED_LEAVE": 139,
+      "REST_RULE_BREACH": 82,
+      "SKILL_NOT_HELD": 239,
+      "WEEKLY_HOURS_BREACH": 18
+    },
+    "manager_response_hours_p50": 7.78,
+    "manager_response_hours_p90": 24.52
+  },
+  "M06_attendance": {
+    "due_assignments": 93128,
+    "by_outcome": {
+      "MISSING_PUNCH": 160,
+      "NO_SHOW": 1521,
+      "PRESENT": 91447
+    },
+    "no_show_rate": 0.0163,
+    "punctuality_rate": 0.9311,
+    "late_rate": 0.0689,
+    "early_leave_rate": 0.0306,
+    "extension_rate": 0.0938,
+    "missing_punch_rate": 0.0017,
+    "manual_correction_rate": 0.0101
+  },
+  "M07_reconciliation": {
+    "due_assignments": 93128,
+    "complete_record_rate": 0.9983,
+    "no_record": 0,
+    "scheduled_hours": 745024,
+    "worked_hours": 742120.87,
+    "worked_vs_scheduled_present": 1.0144,
+    "by_operating_pattern": {
+      "BUSINESS_HOURS": {
+        "present_assignments": 13567,
+        "scheduled_hours": 108536,
+        "worked_hours": 110126.97,
+        "worked_vs_scheduled": 1.0147
+      },
+      "EXTENDED_HOURS": {
+        "present_assignments": 29890,
+        "scheduled_hours": 239120,
+        "worked_hours": 242583.27,
+        "worked_vs_scheduled": 1.0145
+      },
+      "TWENTY_FOUR_SEVEN": {
+        "present_assignments": 47990,
+        "scheduled_hours": 383920,
+        "worked_hours": 389410.63,
+        "worked_vs_scheduled": 1.0143
+      }
+    }
+  },
+  "M08_fairness": {
+    "population": "schedulable members employed for the whole window, compared within their team",
+    "people": 1803,
+    "jain_nights": {
+      "teams": 39,
+      "mean": 0.977,
+      "min": 0.8213,
+      "max": 0.9963
+    },
+    "jain_weekends": {
+      "teams": 72,
+      "mean": 0.9483,
+      "min": 0.7748,
+      "max": 0.996
+    },
+    "jain_holidays": {
+      "teams": 72,
+      "mean": 0.9074,
+      "min": 0.7645,
+      "max": 0.9768
+    },
+    "jain_hours_per_contract": {
+      "teams": 99,
+      "mean": 0.9938,
+      "min": 0.9594,
+      "max": 0.9999
+    },
+    "cv_hours_per_contract": {
+      "teams": 99,
+      "mean": 0.0714,
+      "min": 0.009,
+      "max": 0.2056
+    },
+    "teams": [
+      {
+        "team_id": "TEAM-001",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 24,
+        "jain_nights": 0.9686,
+        "jain_weekends": 0.9641,
+        "jain_holidays": 0.8963,
+        "jain_hours_per_contract": 0.9825,
+        "cv_hours_per_contract": 0.1335
+      },
+      {
+        "team_id": "TEAM-002",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 21,
+        "jain_nights": 0.9912,
+        "jain_weekends": 0.9909,
+        "jain_holidays": 0.8308,
+        "jain_hours_per_contract": 0.9922,
+        "cv_hours_per_contract": 0.0885
+      },
+      {
+        "team_id": "TEAM-003",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 23,
+        "jain_nights": 0.9339,
+        "jain_weekends": 0.833,
+        "jain_holidays": 0.9153,
+        "jain_hours_per_contract": 0.9954,
+        "cv_hours_per_contract": 0.0681
+      },
+      {
+        "team_id": "TEAM-004",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 9,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9798,
+        "cv_hours_per_contract": 0.1437
+      },
+      {
+        "team_id": "TEAM-005",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 14,
+        "jain_nights": null,
+        "jain_weekends": 0.9645,
+        "jain_holidays": 0.9535,
+        "jain_hours_per_contract": 0.9936,
+        "cv_hours_per_contract": 0.08
+      },
+      {
+        "team_id": "TEAM-006",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 15,
+        "jain_nights": null,
+        "jain_weekends": 0.9696,
+        "jain_holidays": 0.9679,
+        "jain_hours_per_contract": 0.9913,
+        "cv_hours_per_contract": 0.0937
+      },
+      {
+        "team_id": "TEAM-007",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 19,
+        "jain_nights": null,
+        "jain_weekends": 0.9694,
+        "jain_holidays": 0.9153,
+        "jain_hours_per_contract": 0.9946,
+        "cv_hours_per_contract": 0.0734
+      },
+      {
+        "team_id": "TEAM-008",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 12,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9983,
+        "cv_hours_per_contract": 0.0409
+      },
+      {
+        "team_id": "TEAM-009",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 11,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9882,
+        "cv_hours_per_contract": 0.1095
+      },
+      {
+        "team_id": "TEAM-010",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 16,
+        "jain_nights": null,
+        "jain_weekends": 0.9152,
+        "jain_holidays": 0.9375,
+        "jain_hours_per_contract": 0.9989,
+        "cv_hours_per_contract": 0.0326
+      },
+      {
+        "team_id": "TEAM-011",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 11,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9965,
+        "cv_hours_per_contract": 0.0596
+      },
+      {
+        "team_id": "TEAM-012",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 21,
+        "jain_nights": 0.9746,
+        "jain_weekends": 0.9405,
+        "jain_holidays": 0.8325,
+        "jain_hours_per_contract": 0.9918,
+        "cv_hours_per_contract": 0.0912
+      },
+      {
+        "team_id": "TEAM-013",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 21,
+        "jain_nights": null,
+        "jain_weekends": 0.9397,
+        "jain_holidays": 0.8521,
+        "jain_hours_per_contract": 0.9594,
+        "cv_hours_per_contract": 0.2056
+      },
+      {
+        "team_id": "TEAM-014",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 27,
+        "jain_nights": 0.9805,
+        "jain_weekends": 0.9775,
+        "jain_holidays": 0.8822,
+        "jain_hours_per_contract": 0.9948,
+        "cv_hours_per_contract": 0.0726
+      },
+      {
+        "team_id": "TEAM-015",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 21,
+        "jain_nights": null,
+        "jain_weekends": 0.9878,
+        "jain_holidays": 0.9147,
+        "jain_hours_per_contract": 0.9939,
+        "cv_hours_per_contract": 0.0786
+      },
+      {
+        "team_id": "TEAM-016",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 20,
+        "jain_nights": null,
+        "jain_weekends": 0.9389,
+        "jain_holidays": 0.9302,
+        "jain_hours_per_contract": 0.9983,
+        "cv_hours_per_contract": 0.0414
+      },
+      {
+        "team_id": "TEAM-017",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 17,
+        "jain_nights": null,
+        "jain_weekends": 0.976,
+        "jain_holidays": 0.8869,
+        "jain_hours_per_contract": 0.9912,
+        "cv_hours_per_contract": 0.0942
+      },
+      {
+        "team_id": "TEAM-018",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 15,
+        "jain_nights": null,
+        "jain_weekends": 0.8788,
+        "jain_holidays": 0.917,
+        "jain_hours_per_contract": 0.9895,
+        "cv_hours_per_contract": 0.1032
+      },
+      {
+        "team_id": "TEAM-019",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 27,
+        "jain_nights": 0.978,
+        "jain_weekends": 0.9778,
+        "jain_holidays": 0.9415,
+        "jain_hours_per_contract": 0.9961,
+        "cv_hours_per_contract": 0.0625
+      },
+      {
+        "team_id": "TEAM-020",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 22,
+        "jain_nights": 0.9762,
+        "jain_weekends": 0.9716,
+        "jain_holidays": 0.9037,
+        "jain_hours_per_contract": 0.9867,
+        "cv_hours_per_contract": 0.1159
+      },
+      {
+        "team_id": "TEAM-021",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 12,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9997,
+        "cv_hours_per_contract": 0.0173
+      },
+      {
+        "team_id": "TEAM-022",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 25,
+        "jain_nights": 0.9888,
+        "jain_weekends": 0.9878,
+        "jain_holidays": 0.8963,
+        "jain_hours_per_contract": 0.9958,
+        "cv_hours_per_contract": 0.0652
+      },
+      {
+        "team_id": "TEAM-023",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 22,
+        "jain_nights": 0.9884,
+        "jain_weekends": 0.9904,
+        "jain_holidays": 0.9113,
+        "jain_hours_per_contract": 0.9946,
+        "cv_hours_per_contract": 0.0737
+      },
+      {
+        "team_id": "TEAM-024",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 19,
+        "jain_nights": 0.9746,
+        "jain_weekends": 0.9812,
+        "jain_holidays": 0.8608,
+        "jain_hours_per_contract": 0.9962,
+        "cv_hours_per_contract": 0.0617
+      },
+      {
+        "team_id": "TEAM-025",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 17,
+        "jain_nights": null,
+        "jain_weekends": 0.9687,
+        "jain_holidays": 0.8995,
+        "jain_hours_per_contract": 0.9962,
+        "cv_hours_per_contract": 0.0619
+      },
+      {
+        "team_id": "TEAM-026",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 9,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9805,
+        "cv_hours_per_contract": 0.141
+      },
+      {
+        "team_id": "TEAM-027",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 21,
+        "jain_nights": 0.9829,
+        "jain_weekends": 0.9477,
+        "jain_holidays": 0.8816,
+        "jain_hours_per_contract": 0.9938,
+        "cv_hours_per_contract": 0.0792
+      },
+      {
+        "team_id": "TEAM-028",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 11,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9992,
+        "cv_hours_per_contract": 0.0282
+      },
+      {
+        "team_id": "TEAM-029",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 19,
+        "jain_nights": null,
+        "jain_weekends": 0.9872,
+        "jain_holidays": 0.9109,
+        "jain_hours_per_contract": 0.9947,
+        "cv_hours_per_contract": 0.0729
+      },
+      {
+        "team_id": "TEAM-030",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 27,
+        "jain_nights": 0.9671,
+        "jain_weekends": 0.8434,
+        "jain_holidays": 0.8824,
+        "jain_hours_per_contract": 0.9948,
+        "cv_hours_per_contract": 0.0725
+      },
+      {
+        "team_id": "TEAM-031",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 10,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9955,
+        "cv_hours_per_contract": 0.0673
+      },
+      {
+        "team_id": "TEAM-032",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 16,
+        "jain_nights": null,
+        "jain_weekends": 0.8642,
+        "jain_holidays": 0.9698,
+        "jain_hours_per_contract": 0.9992,
+        "cv_hours_per_contract": 0.0279
+      },
+      {
+        "team_id": "TEAM-033",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 10,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9854,
+        "cv_hours_per_contract": 0.1218
+      },
+      {
+        "team_id": "TEAM-034",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 11,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9983,
+        "cv_hours_per_contract": 0.0417
+      },
+      {
+        "team_id": "TEAM-035",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 20,
+        "jain_nights": 0.9831,
+        "jain_weekends": 0.9566,
+        "jain_holidays": 0.9524,
+        "jain_hours_per_contract": 0.999,
+        "cv_hours_per_contract": 0.031
+      },
+      {
+        "team_id": "TEAM-036",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 11,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9931,
+        "cv_hours_per_contract": 0.0832
+      },
+      {
+        "team_id": "TEAM-037",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 16,
+        "jain_nights": null,
+        "jain_weekends": 0.915,
+        "jain_holidays": 0.9073,
+        "jain_hours_per_contract": 0.9986,
+        "cv_hours_per_contract": 0.0378
+      },
+      {
+        "team_id": "TEAM-038",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 27,
+        "jain_nights": 0.9908,
+        "jain_weekends": 0.9266,
+        "jain_holidays": 0.8744,
+        "jain_hours_per_contract": 0.9951,
+        "cv_hours_per_contract": 0.0703
+      },
+      {
+        "team_id": "TEAM-039",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 19,
+        "jain_nights": null,
+        "jain_weekends": 0.956,
+        "jain_holidays": 0.9153,
+        "jain_hours_per_contract": 0.9922,
+        "cv_hours_per_contract": 0.0888
+      },
+      {
+        "team_id": "TEAM-040",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 14,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9988,
+        "cv_hours_per_contract": 0.0351
+      },
+      {
+        "team_id": "TEAM-041",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 11,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9999,
+        "cv_hours_per_contract": 0.009
+      },
+      {
+        "team_id": "TEAM-042",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 10,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9874,
+        "cv_hours_per_contract": 0.113
+      },
+      {
+        "team_id": "TEAM-043",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 17,
+        "jain_nights": null,
+        "jain_weekends": 0.9553,
+        "jain_holidays": 0.9454,
+        "jain_hours_per_contract": 0.9976,
+        "cv_hours_per_contract": 0.049
+      },
+      {
+        "team_id": "TEAM-044",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 12,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9855,
+        "cv_hours_per_contract": 0.1214
+      },
+      {
+        "team_id": "TEAM-045",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 25,
+        "jain_nights": 0.9646,
+        "jain_weekends": 0.9734,
+        "jain_holidays": 0.938,
+        "jain_hours_per_contract": 0.9944,
+        "cv_hours_per_contract": 0.075
+      },
+      {
+        "team_id": "TEAM-046",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 20,
+        "jain_nights": null,
+        "jain_weekends": 0.9861,
+        "jain_holidays": 0.9091,
+        "jain_hours_per_contract": 0.9863,
+        "cv_hours_per_contract": 0.1181
+      },
+      {
+        "team_id": "TEAM-047",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 19,
+        "jain_nights": 0.9932,
+        "jain_weekends": 0.9794,
+        "jain_holidays": 0.9607,
+        "jain_hours_per_contract": 0.9892,
+        "cv_hours_per_contract": 0.1043
+      },
+      {
+        "team_id": "TEAM-048",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 9,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9904,
+        "cv_hours_per_contract": 0.0985
+      },
+      {
+        "team_id": "TEAM-049",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 10,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9973,
+        "cv_hours_per_contract": 0.0519
+      },
+      {
+        "team_id": "TEAM-050",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 27,
+        "jain_nights": 0.9871,
+        "jain_weekends": 0.9683,
+        "jain_holidays": 0.931,
+        "jain_hours_per_contract": 0.9943,
+        "cv_hours_per_contract": 0.0756
+      },
+      {
+        "team_id": "TEAM-051",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 30,
+        "jain_nights": 0.9925,
+        "jain_weekends": 0.9684,
+        "jain_holidays": 0.8667,
+        "jain_hours_per_contract": 0.9958,
+        "cv_hours_per_contract": 0.0646
+      },
+      {
+        "team_id": "TEAM-052",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 11,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9892,
+        "cv_hours_per_contract": 0.1045
+      },
+      {
+        "team_id": "TEAM-053",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 17,
+        "jain_nights": null,
+        "jain_weekends": 0.8947,
+        "jain_holidays": 0.902,
+        "jain_hours_per_contract": 0.9945,
+        "cv_hours_per_contract": 0.0742
+      },
+      {
+        "team_id": "TEAM-054",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 27,
+        "jain_nights": 0.9937,
+        "jain_weekends": 0.9918,
+        "jain_holidays": 0.8685,
+        "jain_hours_per_contract": 0.996,
+        "cv_hours_per_contract": 0.0637
+      },
+      {
+        "team_id": "TEAM-055",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 13,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9909,
+        "cv_hours_per_contract": 0.0957
+      },
+      {
+        "team_id": "TEAM-056",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 18,
+        "jain_nights": null,
+        "jain_weekends": 0.9728,
+        "jain_holidays": 0.9259,
+        "jain_hours_per_contract": 0.9956,
+        "cv_hours_per_contract": 0.0666
+      },
+      {
+        "team_id": "TEAM-057",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 24,
+        "jain_nights": 0.9927,
+        "jain_weekends": 0.9867,
+        "jain_holidays": 0.9713,
+        "jain_hours_per_contract": 0.9992,
+        "cv_hours_per_contract": 0.0289
+      },
+      {
+        "team_id": "TEAM-058",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 24,
+        "jain_nights": 0.9811,
+        "jain_weekends": 0.8898,
+        "jain_holidays": 0.9698,
+        "jain_hours_per_contract": 0.9992,
+        "cv_hours_per_contract": 0.0289
+      },
+      {
+        "team_id": "TEAM-059",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 18,
+        "jain_nights": null,
+        "jain_weekends": 0.93,
+        "jain_holidays": 0.955,
+        "jain_hours_per_contract": 0.9993,
+        "cv_hours_per_contract": 0.0258
+      },
+      {
+        "team_id": "TEAM-060",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 25,
+        "jain_nights": 0.9924,
+        "jain_weekends": 0.9542,
+        "jain_holidays": 0.9529,
+        "jain_hours_per_contract": 0.9967,
+        "cv_hours_per_contract": 0.0571
+      },
+      {
+        "team_id": "TEAM-061",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 22,
+        "jain_nights": 0.9914,
+        "jain_weekends": 0.9798,
+        "jain_holidays": 0.8869,
+        "jain_hours_per_contract": 0.9956,
+        "cv_hours_per_contract": 0.0668
+      },
+      {
+        "team_id": "TEAM-062",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 25,
+        "jain_nights": 0.9667,
+        "jain_weekends": 0.9556,
+        "jain_holidays": 0.8901,
+        "jain_hours_per_contract": 0.9945,
+        "cv_hours_per_contract": 0.0743
+      },
+      {
+        "team_id": "TEAM-063",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 26,
+        "jain_nights": 0.9962,
+        "jain_weekends": 0.9862,
+        "jain_holidays": 0.8751,
+        "jain_hours_per_contract": 0.9931,
+        "cv_hours_per_contract": 0.0835
+      },
+      {
+        "team_id": "TEAM-064",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 24,
+        "jain_nights": 0.98,
+        "jain_weekends": 0.9893,
+        "jain_holidays": 0.88,
+        "jain_hours_per_contract": 0.997,
+        "cv_hours_per_contract": 0.0552
+      },
+      {
+        "team_id": "TEAM-065",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 18,
+        "jain_nights": null,
+        "jain_weekends": 0.9385,
+        "jain_holidays": 0.9286,
+        "jain_hours_per_contract": 0.9943,
+        "cv_hours_per_contract": 0.0756
+      },
+      {
+        "team_id": "TEAM-066",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 26,
+        "jain_nights": 0.9804,
+        "jain_weekends": 0.9527,
+        "jain_holidays": 0.8741,
+        "jain_hours_per_contract": 0.9919,
+        "cv_hours_per_contract": 0.0904
+      },
+      {
+        "team_id": "TEAM-067",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 20,
+        "jain_nights": 0.9687,
+        "jain_weekends": 0.9657,
+        "jain_holidays": 0.7645,
+        "jain_hours_per_contract": 0.9905,
+        "cv_hours_per_contract": 0.0979
+      },
+      {
+        "team_id": "TEAM-068",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 20,
+        "jain_nights": null,
+        "jain_weekends": 0.9438,
+        "jain_holidays": 0.9038,
+        "jain_hours_per_contract": 0.9931,
+        "cv_hours_per_contract": 0.0833
+      },
+      {
+        "team_id": "TEAM-069",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 21,
+        "jain_nights": 0.9895,
+        "jain_weekends": 0.9886,
+        "jain_holidays": 0.907,
+        "jain_hours_per_contract": 0.9959,
+        "cv_hours_per_contract": 0.0644
+      },
+      {
+        "team_id": "TEAM-070",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 8,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9893,
+        "cv_hours_per_contract": 0.1038
+      },
+      {
+        "team_id": "TEAM-071",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 16,
+        "jain_nights": null,
+        "jain_weekends": 0.9354,
+        "jain_holidays": 0.8789,
+        "jain_hours_per_contract": 0.9922,
+        "cv_hours_per_contract": 0.0885
+      },
+      {
+        "team_id": "TEAM-072",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 16,
+        "jain_nights": null,
+        "jain_weekends": 0.9363,
+        "jain_holidays": 0.9698,
+        "jain_hours_per_contract": 0.9995,
+        "cv_hours_per_contract": 0.0215
+      },
+      {
+        "team_id": "TEAM-073",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 15,
+        "jain_nights": null,
+        "jain_weekends": 0.996,
+        "jain_holidays": 0.9477,
+        "jain_hours_per_contract": 0.9977,
+        "cv_hours_per_contract": 0.0482
+      },
+      {
+        "team_id": "TEAM-074",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 24,
+        "jain_nights": 0.9622,
+        "jain_weekends": 0.9804,
+        "jain_holidays": 0.8926,
+        "jain_hours_per_contract": 0.9913,
+        "cv_hours_per_contract": 0.0939
+      },
+      {
+        "team_id": "TEAM-075",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 13,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9977,
+        "cv_hours_per_contract": 0.048
+      },
+      {
+        "team_id": "TEAM-076",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 24,
+        "jain_nights": 0.9963,
+        "jain_weekends": 0.996,
+        "jain_holidays": 0.947,
+        "jain_hours_per_contract": 0.997,
+        "cv_hours_per_contract": 0.055
+      },
+      {
+        "team_id": "TEAM-077",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 18,
+        "jain_nights": null,
+        "jain_weekends": 0.9723,
+        "jain_holidays": 0.907,
+        "jain_hours_per_contract": 0.9991,
+        "cv_hours_per_contract": 0.0292
+      },
+      {
+        "team_id": "TEAM-078",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 27,
+        "jain_nights": 0.9872,
+        "jain_weekends": 0.9709,
+        "jain_holidays": 0.8427,
+        "jain_hours_per_contract": 0.9919,
+        "cv_hours_per_contract": 0.0904
+      },
+      {
+        "team_id": "TEAM-079",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 19,
+        "jain_nights": null,
+        "jain_weekends": 0.8421,
+        "jain_holidays": 0.9109,
+        "jain_hours_per_contract": 0.9991,
+        "cv_hours_per_contract": 0.0303
+      },
+      {
+        "team_id": "TEAM-080",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 17,
+        "jain_nights": null,
+        "jain_weekends": 0.9915,
+        "jain_holidays": 0.9438,
+        "jain_hours_per_contract": 0.9949,
+        "cv_hours_per_contract": 0.0719
+      },
+      {
+        "team_id": "TEAM-081",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 17,
+        "jain_nights": null,
+        "jain_weekends": 0.8836,
+        "jain_holidays": 0.9224,
+        "jain_hours_per_contract": 0.9975,
+        "cv_hours_per_contract": 0.0503
+      },
+      {
+        "team_id": "TEAM-082",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 20,
+        "jain_nights": 0.9936,
+        "jain_weekends": 0.8812,
+        "jain_holidays": 0.8522,
+        "jain_hours_per_contract": 0.9974,
+        "cv_hours_per_contract": 0.0507
+      },
+      {
+        "team_id": "TEAM-083",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 27,
+        "jain_nights": 0.9725,
+        "jain_weekends": 0.9144,
+        "jain_holidays": 0.9404,
+        "jain_hours_per_contract": 0.9991,
+        "cv_hours_per_contract": 0.0301
+      },
+      {
+        "team_id": "TEAM-084",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 9,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9943,
+        "cv_hours_per_contract": 0.0755
+      },
+      {
+        "team_id": "TEAM-085",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 12,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9917,
+        "cv_hours_per_contract": 0.0913
+      },
+      {
+        "team_id": "TEAM-086",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 22,
+        "jain_nights": 0.9892,
+        "jain_weekends": 0.9784,
+        "jain_holidays": 0.9618,
+        "jain_hours_per_contract": 0.9995,
+        "cv_hours_per_contract": 0.0215
+      },
+      {
+        "team_id": "TEAM-087",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 12,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9952,
+        "cv_hours_per_contract": 0.0695
+      },
+      {
+        "team_id": "TEAM-088",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 9,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.999,
+        "cv_hours_per_contract": 0.0318
+      },
+      {
+        "team_id": "TEAM-089",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 20,
+        "jain_nights": null,
+        "jain_weekends": 0.9683,
+        "jain_holidays": 0.9524,
+        "jain_hours_per_contract": 0.9966,
+        "cv_hours_per_contract": 0.0582
+      },
+      {
+        "team_id": "TEAM-090",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 19,
+        "jain_nights": null,
+        "jain_weekends": 0.9844,
+        "jain_holidays": 0.8772,
+        "jain_hours_per_contract": 0.992,
+        "cv_hours_per_contract": 0.0898
+      },
+      {
+        "team_id": "TEAM-091",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 21,
+        "jain_nights": null,
+        "jain_weekends": 0.9832,
+        "jain_holidays": 0.9768,
+        "jain_hours_per_contract": 0.9976,
+        "cv_hours_per_contract": 0.0492
+      },
+      {
+        "team_id": "TEAM-092",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 9,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9992,
+        "cv_hours_per_contract": 0.028
+      },
+      {
+        "team_id": "TEAM-093",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 22,
+        "jain_nights": 0.9752,
+        "jain_weekends": 0.9869,
+        "jain_holidays": 0.8602,
+        "jain_hours_per_contract": 0.9943,
+        "cv_hours_per_contract": 0.076
+      },
+      {
+        "team_id": "TEAM-094",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 15,
+        "jain_nights": null,
+        "jain_weekends": 0.9785,
+        "jain_holidays": 0.8444,
+        "jain_hours_per_contract": 0.9899,
+        "cv_hours_per_contract": 0.1009
+      },
+      {
+        "team_id": "TEAM-095",
+        "operating_pattern": "BUSINESS_HOURS",
+        "members": 14,
+        "jain_nights": null,
+        "jain_weekends": null,
+        "jain_holidays": null,
+        "jain_hours_per_contract": 0.9965,
+        "cv_hours_per_contract": 0.0589
+      },
+      {
+        "team_id": "TEAM-096",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 24,
+        "jain_nights": 0.9901,
+        "jain_weekends": 0.9672,
+        "jain_holidays": 0.9205,
+        "jain_hours_per_contract": 0.9961,
+        "cv_hours_per_contract": 0.0628
+      },
+      {
+        "team_id": "TEAM-097",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 21,
+        "jain_nights": 0.8213,
+        "jain_weekends": 0.9078,
+        "jain_holidays": 0.801,
+        "jain_hours_per_contract": 0.965,
+        "cv_hours_per_contract": 0.1904
+      },
+      {
+        "team_id": "TEAM-098",
+        "operating_pattern": "EXTENDED_HOURS",
+        "members": 20,
+        "jain_nights": null,
+        "jain_weekends": 0.7748,
+        "jain_holidays": 0.9,
+        "jain_hours_per_contract": 0.9982,
+        "cv_hours_per_contract": 0.0422
+      },
+      {
+        "team_id": "TEAM-099",
+        "operating_pattern": "TWENTY_FOUR_SEVEN",
+        "members": 22,
+        "jain_nights": 0.9673,
+        "jain_weekends": 0.7797,
+        "jain_holidays": 0.9362,
+        "jain_hours_per_contract": 0.9991,
+        "cv_hours_per_contract": 0.0303
+      }
+    ]
+  }
+}

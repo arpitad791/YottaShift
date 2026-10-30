@@ -21,6 +21,7 @@ Produced by `npm run validate -- --profile starter` from the exported files only
 | I-10 | Event chains complete: seq 1…n, linked statuses, time order, status = last event | 3,051 | ✅ 0 |  |
 | I-11 | Cross-table consistency of roles, policies, skills, calendar and IDs | 10,052 | ✅ 0 |  |
 | I-12 | Derived tables recompute exactly from the source tables (arithmetic reconciliation) | 5,405 | ✅ 0 |  |
+| I-13 | JSON, SQL seed and SQLite database hold exactly the CSV data | 63 | ✅ 0 |  |
 | D-01 | Leave decisions replay exactly from the rules (R-LVE-01 … R-LVE-07) | 160 | ✅ 0 |  |
 | D-02 | Swap decisions consistent with R-SWP-01 … R-SWP-07 | 284 | ✅ 0 |  |
 

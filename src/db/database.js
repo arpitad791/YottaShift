@@ -44,6 +44,14 @@ export function createDatabase(path = ':memory:') {
   return db;
 }
 
+/** Map of every table in LOAD_ORDER → its column names in schema order. */
+export function schemaColumns() {
+  const db = createDatabase();
+  const columns = new Map(LOAD_ORDER.map((table) => [table, tableColumns(db, table)]));
+  db.close();
+  return columns;
+}
+
 /** Column names of a table, in schema order. */
 export function tableColumns(db, table) {
   return db

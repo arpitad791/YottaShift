@@ -16,7 +16,7 @@ traceability matrix and the change log at the end of every phase.
 | Build | Fully local, no paid or hosted services |
 | Stack | Node.js 24 (ESM) · Express 5 · React 19 + Vite · SQLite (built-in `node:sqlite`) · `node:test` · ESLint + Prettier |
 | Fixed seed | `20261022` |
-| Current phase | Phase 6 — done; next: Phase 7 |
+| Current phase | Phase 7 — done; next: Phase 8 |
 
 ## 2. Working agreement
 
@@ -40,8 +40,8 @@ traceability matrix and the change log at the end of every phase.
 | 4 | Derived values & metrics | overtime, leave balances, coverage gaps, attendance reconciliation, fairness scores — computed from source records | ✅ Done |
 | 5 | Edge-case injection & ground truth | 5 required anomaly types + boundary cases, `ground_truth.csv/json` kept separate | ✅ Done |
 | 6 | Validation & evaluation | integrity checks, rule detectors, detector-vs-ground-truth scoring, validation summary | ✅ Done |
-| 7 | Export & reproducibility | CSV / JSON / SQL seed / SQLite DB, source manifest with checksums, two-run reproducibility proof | ⏳ Next |
-| 8 | Express API | read endpoints for schedules, gaps, exceptions, history; manager actions append events | ⬜ |
+| 7 | Export & reproducibility | CSV / JSON / SQL seed / SQLite DB, source manifest with checksums, two-run reproducibility proof | ✅ Done |
+| 8 | Express API | read endpoints for schedules, gaps, exceptions, history; manager actions append events | ⏳ Next |
 | 9 | React dashboard | manager / HR / ops views of coverage, exceptions, swaps, leave, metrics | ⬜ |
 | 10 | Hardening, docs & submission | full-scale timing, clean-clone run, final README, design notes, AI disclosure, submission checklist | ⬜ |
 
@@ -154,15 +154,20 @@ Verified 2026-10-30: `npm test` 192/192 (≈ 30 s); lint and format clean; both 
 Fixed during the phase: (1) the reader returned tables in schema-creation order, so loading failed on an immediate FK — a shared `LOAD_ORDER` constant now drives generator and reader (test enforces equality); (2) a cross-table check crashed on an orphaned team instead of reporting it — every check now runs inside a guard; (3) an O(n²) parent lookup in I-10 replaced by a set.
 Suggested commit: `feat(validation): file-level integrity checks, decision replay and ground-truth evaluation`
 
-### Phase 7 — Export & reproducibility
+### Phase 7 — Export & reproducibility ✅
 
-- [ ] Export CSV + JSON per table, `sql/seed.sql` (INSERTs in parent→child order), SQLite database file
-- [ ] `manifest.json`: generator command, seed, profile, generator version, timestamp-free content, per-file row count + SHA-256, provenance (synthetic; any public reference cited)
-- [ ] `npm run reproduce`: generate twice with the same seed into separate folders, compare row counts and checksums, write `reports/reproducibility.md`
-- [ ] Seed file loads into a fresh SQLite DB with FKs on
-- [ ] Decide which profile outputs are committed (size check, §9 Q-04)
+- [x] Export pipeline [`src/export/write-dataset.js`](src/export/write-dataset.js) behind `npm run generate`: SQLite database first (the integrity gate), then CSV, JSON, SQL seed, ground truth, metrics, manifest — all columns in schema order ([`formats.js`](src/export/formats.js))
+- [x] `sql/seed.sql`: data-only `INSERT … VALUES` in batches of 500, parent tables first, one transaction (deferred FKs for the two cycles); loads into a fresh schema with FKs on (tested)
+- [x] `sqlite/yottashift.db`: ready-to-query database; passes `PRAGMA integrity_check` and FK checks (tested)
+- [x] `manifest.json`: dataset, profile, seed, generator command and version, config SHA-256, environment (Node 24.15.0, SQLite 3.51.3), window, volumes, row counts per table, ground-truth counts, provenance, policy thresholds, and rows / bytes / SHA-256 of all 48 files — no run timestamp
+- [x] `npm run reproduce -- --profile <name>` ([`src/cli/reproduce.js`](src/cli/reproduce.js), [`manifest-compare.js`](src/export/manifest-compare.js)): two fresh runs into temporary folders, every file compared, plus comparison with the published manifest; `reports/reproducibility.{json,md}`; exit 1 on a difference; the SQLite file is the only one allowed to differ when Node/SQLite versions differ (its header records the version)
+- [x] Validation gained I-13 ([`src/validation/formats.js`](src/validation/formats.js)): JSON, seed and database hold exactly the CSV rows (per-table SHA-256 in schema column order)
+- [x] Q-04 decided: `data/starter/` committed in all formats (12.3 MB); `data/full/` (391 MB, SQLite file > GitHub's 100 MB limit) regenerated on demand — only its `manifest.json`, `reports/` and `ground_truth/` are committed (`.gitignore` negations)
+- [x] Tests — 9 new ([`export.test.js`](test/export.test.js)): all formats written; manifest rows and checksums true and timestamp-free; database integrity and counts; seed loads with FKs; I-13 passes and fails on one changed JSON value; manifest comparison; reproduce CLI IDENTICAL then exit 1 on a tampered published checksum
 
-Exit criteria: both runs byte-identical; seed loads cleanly. Suggested commit: `feat(export): CSV/JSON/SQL seed, manifest and reproducibility check`
+Results: starter — 48 files, 12.3 MB, ≈ 1 s; full — 48 files, 391 MB (CSV 60, JSON 152, seed 77, SQLite 103 MB), ≈ 21 s. `npm run reproduce`: **48 / 48 files byte-identical** across two runs and with the published manifest, for both profiles. `npm run validate` PASS for both profiles with I-13 (63 / 63 table comparisons identical; full ≈ 29 s).
+Verified 2026-10-30: `npm test` 201/201 (≈ 37 s); lint and format clean.
+Suggested commit: `feat(export): JSON, SQL seed and SQLite exports, manifest and reproducibility check`
 
 ### Phase 8 — Express API
 
@@ -230,19 +235,19 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | E-06 | Validate all joins | 6 | ✅ I-05 resolves all 47 FK columns across the exported files; I-02 loads them into the schema |
 | E-07 | Anomalies keep an issue_type / ground-truth label; unrelated rows untouched | 5 | ✅ labels in `ground_truth/` only; anomalies touch only their own rows (isolation test); untouched tables identical to the baseline |
 | N-01 | IDs: `EMP-000001`, `SHIFT-2026-01-01-A`, `LVE-2026-000001`, `ATT-<employee-id>-<timestamp>`, `SWP-2026-000001` | 2 | ✅ all five brief formats generated (EMP, SHIFT, LVE, ATT, SWP) and enforced by schema + `ID_PATTERNS` |
-| N-02 | Zero-padded counters, immutable IDs, identical across files | 2, 7 | ✅ zero-padded, creation-ordered, identical across reruns; same IDs in CSV and DB · JSON/SQL Phase 7 |
+| N-02 | Zero-padded counters, immutable IDs, identical across files | 2, 7 | ✅ zero-padded, immutable, identical across reruns; I-13 proves CSV, JSON, SQL seed and SQLite hold identical rows |
 | S-01 | Step 1 data dictionary: type, required/optional, allowed values, units, uniqueness, validation rule | 1 | ✅ data-dictionary.md (all 21 tables) |
 | S-02 | Step 2 parents before children/events | 2, 3 | ✅ master → leave → roster/swaps → attendance; load order parent-first (one deferred FK) |
 | S-03 | Step 3 deterministic IDs and naming | 2 | ✅ `src/lib/ids.js` |
-| S-04 | Step 4 volume: 2,000 employees, 100 teams, 90 days of shifts, 5,000 leave requests | 2, 3 | ✅ 2,000 employees, 100 teams, 90 days (360 shifts), 5,000 leave requests |
+| S-04 | Step 4 volume: 2,000 employees, 100 teams, 90 days of shifts, 5,000 leave requests | 2, 3 | ✅ 2,000 employees, 100 teams, 90 days (360 shifts), 5,000 leave requests — row counts in `data/full/manifest.json` |
 | S-05 | Step 4 public holidays, absences, overtime caps, skill-specific staffing | 2, 3 | ✅ 5 holidays; absences (approved leave, sick call-ins, 1,481 no-shows); overtime caps enforced; skill-specific staffing |
 | S-06 | Step 4 fixed seed 20261022; same generator for starter and full | 2 | ✅ seed `20261022`; `starter` and `full` profiles through one generator; byte-identical reruns |
 | S-07 | Step 5 valid baseline first, then labelled edge cases | 3, 5 | ✅ clean baseline proven violation-free (Phase 3 tests), then labelled injection (`generateDataset`) |
 | S-08 | Step 6 derived values computed from source records | 4 | ✅ `src/derive/derived-tables.js` — pure functions of the source tables; schema CHECKs re-verify the arithmetic · reconciliation of exported files Phase 6 |
 | S-09 | Step 7 separate ground_truth.csv/json, no leakage | 5 | ✅ `data/<profile>/ground_truth/ground_truth.csv` + `.json`, separate folder, never loaded as a table; leakage tests on table and column names |
 | S-10 | Step 8 validation: PK, FK, enums, date ordering, arithmetic reconciliation, lifecycle transitions, duplicates | 6 | ✅ `npm run validate`: PK, unique keys, FKs, enums, ID formats, date ordering, arithmetic reconciliation (I-12), lifecycle chains (I-10 + R-GEN-01/R-SWP-08), duplicates — `validation_summary.{json,md}` |
-| S-11 | Step 9 export CSV/JSON/SQL seed + README, schema/dictionary, generator command, seed, source manifest, validation summary | 7 | output folder |
-| S-12 | Step 10 regenerate twice with same seed; compare counts/checksums | 7 | reproducibility.md |
+| S-11 | Step 9 export CSV/JSON/SQL seed + README, schema/dictionary, generator command, seed, source manifest, validation summary | 7 | ✅ `data/<profile>/`: CSV, JSON, `sql/seed.sql`, SQLite DB, ground truth, metrics, `manifest.json` (command, seed, config hash, provenance, checksums), validation summary; README + data dictionary + schema |
+| S-12 | Step 10 regenerate twice with same seed; compare counts/checksums | 7 | ✅ `npm run reproduce`: 48 / 48 files byte-identical across two runs and with the published manifest (both profiles) |
 | X-01 | Edge case: employee double-booked | 5, 6 | ✅ 20 labelled (full); recall and precision 100 % (validation summary) |
 | X-02 | Edge case: approved leave overlaps assigned shift | 5, 6 | ✅ 20 labelled (full); recall and precision 100 % (validation summary) |
 | X-03 | Edge case: required skill absent | 5, 6 | ✅ 20 labelled (full); recall and precision 100 % (validation summary) |
@@ -258,8 +263,8 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | V-04 | Correct derived values and reconciliation | 4, 6 | ✅ I-12 derived tables recompute exactly from the exported files; D-01 leave decisions replay identically |
 | V-05 | Normal, boundary, failure and exception coverage | 5, 6 | ✅ normal baseline, 4 boundary types (40 cases, none flagged), 5 failure types (100 cases), exception paths (rejections, expiries, gaps, missing punches) |
 | V-06 | Separate ground truth | 5 | ✅ separate `ground_truth/` folder; no label-like table or column in the inputs (tested) |
-| V-07 | Fixed-seed reproducibility, documentation, lawful provenance | 7, 10 | reproducibility.md, README, manifest provenance |
-| P-01 | External data optional; if used record URL, version, retrieval date, licence, attribution, transformations, discarded fields | 2, 7 | ✅ no external data used; holiday calendar synthetic and labelled (README §10, §14) |
+| V-07 | Fixed-seed reproducibility, documentation, lawful provenance | 7, 10 | ✅ fixed seed, byte-identical reruns, manifest checksums, README / data dictionary / tracking, provenance section in manifest and README |
+| P-01 | External data optional; if used record URL, version, retrieval date, licence, attribution, transformations, discarded fields | 2, 7 | ✅ no external data; provenance recorded in every manifest and README §14 |
 | P-02 | No confidential/personal data; synthetic if licensing unclear | all | ✅ synthetic names from common-name lists; no real people |
 
 ### 5.2 FAQ PDF
@@ -323,14 +328,14 @@ YottaFlex.ai/  (repo: YottaShift)
 │   ├── generator/          # ✅ config.js, master/, transactions/ (leave, timeline, attendance), anomalies/ (labelled injection), index.js
 │   ├── scheduler/          # ✅ roster-state.js (hard rules, fairness key), scheduler.js (weekly publication)
 │   ├── derive/             # ✅ derived-tables.js (4 derived tables), metrics.js (M-01 … M-08)
-│   ├── validation/         # ✅ read-dataset, integrity, decisions, business-rules (detectors), evaluate, validate
-│   ├── export/             # ✅ csv-export, reports (metrics), ground-truth, validation-report · JSON, SQL seed, SQLite DB, manifest in Phase 7
+│   ├── validation/         # ✅ read-dataset, integrity, formats, decisions, business-rules (detectors), evaluate, validate
+│   ├── export/             # ✅ write-dataset (pipeline), csv-export, formats (JSON, SQL seed, SQLite), manifest-compare, reports, ground-truth, validation-report
 │   ├── db/                 # ✅ database.js (open DB with schema, insert rows)
 │   ├── api/                # Express app
-│   └── cli/                # ✅ generate.js, validate.js · reproduce in Phase 7
+│   └── cli/                # ✅ generate.js, validate.js, reproduce.js
 ├── client/                 # React + Vite dashboard (workspace)
-├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive, anomalies, validation tests
-├── data/                   # ✅ <profile>/csv, reports, ground_truth; starter committed as sample; full/ git-ignored
+├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive, anomalies, validation, export tests
+├── data/                   # ✅ <profile>/{csv,json,sql,sqlite,ground_truth,reports}, manifest.json; starter committed; full: manifest, reports, ground truth only
 └── ai-disclosure/          # prompt history and AI-usage notes
 ```
 
@@ -383,6 +388,11 @@ YottaFlex.ai/  (repo: YottaShift)
 | D-43 | 2026-10-30 | Leave decisions replayed with the same pure engine; swaps checked only on statically verifiable rules | Full swap replay would need the whole roster timeline; the static checks still catch wrong approvals, wrong deciders, notice, deadline and links | Full swap re-simulation |
 | D-44 | 2026-10-30 | Status PASS requires recall 1 and no finding outside the labels and no flagged boundary, not just clean structure | The detectors are part of the deliverable; a silent miss should fail the run | Report precision/recall without gating |
 | D-45 | 2026-10-30 | Every check runs inside a guard; the CLI exits 1 for invalid data and 2 only if it cannot run | A validator must report broken data, not crash on it | Let exceptions propagate |
+| D-46 | 2026-10-30 | The SQLite database is written first and is the integrity gate; the in-memory load was dropped | One load instead of two; a bad row stops the run before any other file is written | Separate in-memory check plus a second load |
+| D-47 | 2026-10-30 | No output file carries a run timestamp; the environment (Node, SQLite) is recorded instead | Makes byte-for-byte reproducibility possible and explains the one file whose bytes depend on the SQLite version | `generated_at` in the manifest |
+| D-48 | 2026-10-30 | Seed as batched multi-row INSERTs (500 per statement) in one transaction | Smaller and much faster to load than one statement per row; deferred FKs need one transaction | One INSERT per row |
+| D-49 | 2026-10-30 | Commit the starter dataset in full; commit only the manifest, reports and ground truth of the full profile | Full data is 391 MB and the SQLite file exceeds GitHub's 100 MB limit; the committed checksums still let anyone verify a regeneration | Git LFS (extra setup for reviewers); committing CSV only (breaks the "all formats" sample) |
+| D-50 | 2026-10-30 | Validation compares all four formats through per-table SHA-256 of rows in schema order | Proves IDs and values are identical across files without diffing 391 MB by hand | Row counts only |
 
 ## 9. Open questions & assumptions
 
@@ -391,7 +401,7 @@ YottaFlex.ai/  (repo: YottaShift)
 | Q-01 | Dedicated repo needed (folder sat inside the home-directory repo). | ✅ Resolved — candidate ran `git init`, remote `arpitad791/YottaShift` |
 | Q-02 | Prompt history: FAQ #6 asks for **all** prompts submitted to every AI tool. The final content of `ai-disclosure/prompt-history.md` is the candidate's call. | Waiting on user |
 | Q-03 | 72-hour window start/deadline not yet recorded in §1. | Waiting on user |
-| Q-04 | Whether the full-profile output is committed or regenerated on demand (decide in Phase 7). Full output is 59.7 MB (21 CSVs + reports; largest: attendance). `data/full/` is git-ignored for now; `data/starter/` is committed as the sample. | Open |
+| Q-04 | Commit the full-profile output? | ✅ Resolved (D-49): starter committed in full; full regenerated on demand, its manifest / reports / ground truth committed |
 | A-01 | ShiftAssignment is treated as the published master roster; later changes are events. | Assumed |
 | A-02 | A `shift` table (date × template) makes `SHIFT-2026-01-01-A` a real key (D-10). | Assumed |
 | A-03 | Each employee belongs to one team for the whole window; team transfers are out of scope. | Assumed |
@@ -423,3 +433,4 @@ YottaFlex.ai/  (repo: YottaShift)
 | 2026-10-30 | 4 | Derived tables (week summary, coverage status, leave balance, attendance reconciliation) and metrics M-01 … M-08 with JSON + Markdown reports; shared worked-time/overtime arithmetic; 17 new tests (147 total). Decisions D-31 … D-34 |
 | 2026-10-30 | 5 | Labelled anomaly injection (5 types) and boundary cases (4 reachable types) on the clean baseline; ground truth CSV + JSON in its own folder; derived tables recomputed after injection; `generateDataset({ anomalies: false })` for the baseline; 25 new tests (172 total) proving detection, no false positives, isolation and no leakage. Decisions D-35 … D-39, assumptions A-18 … A-19 |
 | 2026-10-30 | 6 | `npm run validate`: file reader, 12 integrity checks, leave replay and swap decision checks, ground-truth evaluation (M-09), acceptance A-01 … A-04, JSON + Markdown summary; shared `LOAD_ORDER`; 20 new tests (192 total). Full profile PASS from files. Decisions D-40 … D-45 |
+| 2026-10-30 | 7 | JSON, SQL seed and SQLite exports; manifest with checksums, provenance and environment; `npm run reproduce` (two runs + published manifest); I-13 format agreement in validation; `.gitignore` keeps full manifest / reports / ground truth; 9 new tests (201 total). Both profiles: 48 / 48 files byte-identical. Decisions D-46 … D-50, Q-04 resolved |

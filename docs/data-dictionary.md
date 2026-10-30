@@ -451,3 +451,25 @@ one ID with `record_ids`.
 | D-02 | Swap decisions consistent with team, skill, notice, deadline, apply window and links | outcomes from rules |
 | R-… | Business-rule detectors (R-SCH-01 … 08, R-ATT-01/04, R-OVT-02, R-SWP-06, allowed transitions R-GEN-01 / R-SWP-08), graded against the ground truth | anomalies |
 | A-01 … A-04 | The brief's acceptance criteria | acceptance |
+
+## 12. Export files
+
+`npm run generate -- --profile <name>` writes everything under `data/<name>/`. The four data
+formats hold exactly the same rows in the same order (checked by I-13), so every ID is identical
+across files.
+
+| Path | Format | Contents |
+| --- | --- | --- |
+| `csv/<table>.csv` | CSV (RFC 4180, LF, header = schema columns) | One file per table, 21 files |
+| `json/<table>.json` | JSON array, one row object per line | Same rows as the CSV |
+| `sql/seed.sql` | SQL (`INSERT … VALUES` batches of 500, one transaction) | Data only: load after `sql/schema.sql` |
+| `sqlite/yottashift.db` | SQLite 3 database | Schema + all rows, ready to query |
+| `ground_truth/ground_truth.{csv,json}` | CSV / JSON | Labels (§10), never next to the inputs |
+| `reports/metrics.{json,md}` | JSON / Markdown | Metrics M-01 … M-08 |
+| `reports/validation_summary.{json,md}` | JSON / Markdown | Written by `npm run validate` |
+| `reports/reproducibility.{json,md}` | JSON / Markdown | Written by `npm run reproduce` |
+| `manifest.json` | JSON | Command, seed, generator version, config SHA-256, environment (Node, SQLite), window, volumes, table row counts, ground-truth counts, provenance, policy thresholds, and rows / bytes / SHA-256 of every file above except the validation and reproducibility reports |
+
+No file contains the time it was generated, so two runs with the same seed and environment are
+byte-identical. The database file's header records the SQLite version, so its checksum is only
+comparable between runs with the same SQLite (bundled with Node).

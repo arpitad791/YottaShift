@@ -108,6 +108,13 @@
       "checked": 5405,
       "failures": 0,
       "samples": []
+    },
+    {
+      "id": "I-13",
+      "name": "JSON, SQL seed and SQLite database hold exactly the CSV data",
+      "checked": 63,
+      "failures": 0,
+      "samples": []
     }
   ],
   "decisions": [

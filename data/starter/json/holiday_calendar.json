@@ -1,0 +1,5 @@
+[
+{"holiday_id":"HOL-2026-01-01","holiday_date":"2026-01-01","holiday_name":"New Year's Day","holiday_type":"COMPANY"},
+{"holiday_id":"HOL-2026-01-14","holiday_date":"2026-01-14","holiday_name":"Makar Sankranti / Pongal","holiday_type":"PUBLIC"},
+{"holiday_id":"HOL-2026-01-26","holiday_date":"2026-01-26","holiday_name":"Republic Day","holiday_type":"PUBLIC"}
+]

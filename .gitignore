@@ -8,8 +8,14 @@ coverage/
 # Scratch output from reproducibility runs
 .tmp/
 
-# Full-scale output is regenerated on demand; revisit in Phase 7 once its size is known.
-data/full/
+# Full-scale output (~390 MB; the SQLite file alone exceeds GitHub's 100 MB limit) is
+# regenerated on demand with `npm run generate -- --profile full`. Its manifest (row counts and
+# SHA-256 of every file), ground truth and reports are kept, so a regeneration can be checked
+# against them with `npm run reproduce -- --profile full`.
+data/full/*
+!data/full/manifest.json
+!data/full/reports/
+!data/full/ground_truth/
 
 # SQLite side files
 *.db-journal

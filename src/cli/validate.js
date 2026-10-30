@@ -1,6 +1,7 @@
 // Usage: npm run validate -- --profile <starter|full> [--data data] [--config path]
 //
-// Validates an exported dataset from its files alone: <data>/<profile>/csv/*.csv and
+// Validates an exported dataset from its files alone: <data>/<profile>/csv/*.csv (plus json/,
+// sql/seed.sql and sqlite/yottashift.db, which must hold the same data) and
 // <data>/<profile>/ground_truth/. Writes <data>/<profile>/reports/validation_summary.{json,md}
 // and exits with code 1 when anything is wrong.
 
@@ -24,7 +25,7 @@ function main() {
   const started = performance.now();
   const config = loadConfig(values.config);
   const dir = join(values.data, values.profile);
-  const summary = validateDataset(readDataset(dir), { patterns: config.operatingPatterns });
+  const summary = validateDataset(readDataset(dir), { patterns: config.operatingPatterns, dir });
   const reportDir = join(dir, 'reports');
   writeValidation(reportDir, summary, { profileName: values.profile, seed: config.seed });
 
