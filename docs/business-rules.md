@@ -124,20 +124,25 @@ calendar days in a row. Exactly 6 is valid (boundary case).
 
 #### R-SCH-08
 **Weekly scheduled hours.** Per ISO week, scheduled hours ≤
-`min(max_weekly_scheduled_hours, contracted_weekly_hours × days_in_window / 7 + weekly_overtime_cap_hours)`.
-The second term keeps planned work inside the overtime cap in the partial first and last weeks
-of the window.
+`min(max_weekly_scheduled_hours, contracted_weekly_hours × employed_days / 7 + weekly_overtime_cap_hours)`,
+where `employed_days` is the number of days of that week inside the window **and** inside the
+employee's employment. The second term keeps planned work inside the overtime cap in the partial
+first and last weeks of the window and for joiners and leavers.
 
 #### R-SCH-09
 **Fair candidate ordering (soft).** For each open slot (shift, team, skill), the scheduler only
 considers employees who pass R-SCH-01 … R-SCH-08, then orders them by:
-1. lowest share of contracted hours already scheduled this ISO week;
+1. lowest share of contracted hours already scheduled this ISO week, compared in bands of 20 %
+   of the contract (one 8-hour shift of a 40-hour contract), so that inside a band the next key
+   decides;
 2. fewest night (C) shifts so far if the slot is a night shift, fewest weekend shifts if it is a
    weekend, fewest holiday shifts if it is a holiday;
 3. lowest total scheduled hours in the window so far, relative to contracted hours;
 4. a seeded tie-break.
 
-This spreads hours, nights, weekends and holidays evenly. Fairness is measured by M-08.
+This spreads hours, nights, weekends and holidays evenly. Fairness is measured by M-08. Within a
+team and date, skills with the fewest qualified people are filled first, so multi-skilled staff
+are not used up on slots others could fill.
 
 #### R-SCH-10
 **Weekly publication.** The roster for ISO week *w* is built and published at 18:00 on the day
@@ -148,14 +153,17 @@ is `APPROVED` at publication time. Leave approved later is handled by R-LVE-09.
 
 #### R-LVE-01
 **Order and eligibility.** Leave is requested by schedulable employees. Requests are decided in
-`submitted_at` order (ties broken by ID), so balance and team-cap checks see earlier decisions.
+`decided_at` order (ties: `submitted_at`, then generation order), so balance and team-cap
+checks see exactly the decisions made before this one; an approved leave cancelled before this
+decision no longer counts.
 Rules R-LVE-01 … R-LVE-07 are evaluated in number order: the first failing check rejects the
 request, and R-LVE-04 approves SICK leave without the later checks. An employee who is not
 employed on every requested date (R-SCH-04 dates) → `REJECTED`, `EMPLOYEE_NOT_ACTIVE`.
 
 #### R-LVE-02
-**No overlapping requests.** A request overlapping one of the employee's own `SUBMITTED` or
-`APPROVED` requests → `REJECTED`, `OVERLAPS_EXISTING_LEAVE`.
+**No overlapping requests.** A request overlapping one of the employee's own requests that is,
+at this decision, either approved (and not cancelled) or still awaiting its decision (submitted
+earlier, not yet decided or withdrawn) → `REJECTED`, `OVERLAPS_EXISTING_LEAVE`.
 
 #### R-LVE-03
 **Balance.** For ANNUAL, CASUAL and SICK leave:
@@ -188,15 +196,18 @@ decider.
 
 #### R-LVE-08
 **Decision timing.** Manager and HR decisions take 1–48 h after submission (seeded response
-time), and always happen before the leave starts. SICK decisions are made at submission.
+time), capped at one minute before the leave starts. SICK decisions are made at submission.
+Discretionary leave is submitted 1–45 days ahead (some deliberately inside the notice period);
+sick call-ins arrive between 03:00 and 05:30 on the first sick day, before any shift starts.
 
 #### R-LVE-09
 **Late approval.** When leave is approved after the affected week's roster was published, every
 overlapping `SCHEDULED` assignment gets a `CANCELLED` event (`LEAVE_APPROVED`, with the
 `leave_request_id`) at the decision time. For each cancelled slot the scheduler looks for a
 replacement under R-SCH-01 … R-SCH-09 (`source = REPLACEMENT`, `REPLACEMENT_FOR_LEAVE`,
-`supersedes_assignment_id` = the cancelled one). If nobody qualifies, the slot becomes a coverage
-gap (R-COV-04).
+`supersedes_assignment_id` = the cancelled one). Shifts starting within 30 minutes of the
+decision are not backfilled. If nobody qualifies, the slot becomes a coverage gap (R-COV-04).
+A leave approved *before* a week is published simply keeps the employee off that week's roster.
 
 #### R-LVE-10
 **Withdrawal and cancellation.** The employee may withdraw a `SUBMITTED` request (`WITHDRAWN`,
@@ -216,8 +227,11 @@ assignment. For `SWAP` type, the requester also holds the skill of the counterpa
 Otherwise `REJECTED`, `SKILL_NOT_HELD`.
 
 #### R-SWP-03
-**Still feasible.** After the exchange, both employees still satisfy R-SCH-01, 02, 04, 06, 07 and
-08. The first failing rule gives the reason: `DOUBLE_BOOKING`, `ON_APPROVED_LEAVE`,
+**Still feasible.** First, both assignments must still be `SCHEDULED` at the decision (a leave
+approval may have cancelled one meanwhile) → otherwise `ASSIGNMENT_CHANGED`. Then, after the
+exchange, both employees still satisfy R-SCH-01, 02, 04, 06, 07 and 08, using the roster and the
+approved leave as they stand at the decision time. The first failing rule gives the reason:
+`DOUBLE_BOOKING`, `ON_APPROVED_LEAVE`,
 `EMPLOYEE_NOT_ACTIVE`, `REST_RULE_BREACH`, `CONSECUTIVE_DAYS_BREACH`, `WEEKLY_HOURS_BREACH`.
 `COVER` swaps (the counterpart takes the shift, nothing comes back) are checked for the
 counterpart only.
@@ -231,7 +245,11 @@ Otherwise `REJECTED`, `INSUFFICIENT_NOTICE`.
 all pass → `APPROVED`, `APPROVED_WITHIN_POLICY`; else `REJECTED` with the first failing reason.
 The manager's seeded response time decides *when*. If it falls after the deadline,
 `min(requested_at + 48 h, earliest shift start)`, the request becomes `EXPIRED`
-(`SYSTEM`, `NO_DECISION_BEFORE_DEADLINE`) at the deadline instead.
+(`SYSTEM`, `NO_DECISION_BEFORE_DEADLINE`) at the deadline instead. While a request is open its
+assignments are locked: no second swap request can target them. Requests are made by members
+against shifts 2 h to 14 days ahead; the requester usually (configurable) asks a colleague who
+holds the skill and is free and rested for the shift, so most rejections come from the cases
+where they did not.
 
 #### R-SWP-06
 **Apply only after approval.** Only an `APPROVED` swap becomes `APPLIED`, within 10 minutes of
@@ -277,21 +295,24 @@ night shift crossing Sunday midnight counts in the week it started.
 
 #### R-ATT-05
 **No-show.** When an employee never clocks in, `SYSTEM` records a `NO_SHOW` event at the shift's
-end. Planned sick absences do not produce no-shows, because the sick call-in cancels the
-assignment first (R-LVE-04, R-LVE-09).
+end. Approved sick call-ins do not produce no-shows, because the approval cancels the assignment
+first (R-LVE-04, R-LVE-09). A sick call-in that was **rejected** (e.g. no sick balance left) still
+keeps the employee at home, so their shifts in that period become no-shows.
 
 ### 2.7 Overtime
 
 #### R-OVT-01
 **Weekly overtime.** Per employee per ISO week:
-`overtime_hours = max(0, worked_hours − contracted_weekly_hours × days_in_window / 7)`, rounded
-to 2 decimals. `days_in_window` is 7 except in the partial first and last weeks
-(2026-W01 = 4 days, 2026-W14 = 2 days in the full profile).
+`overtime_hours = max(0, worked_hours − contracted_weekly_hours × employed_days / 7)`, rounded
+to 2 decimals, with `employed_days` as in R-SCH-08 (7 except in the partial first and last weeks —
+2026-W01 = 4 days, 2026-W14 = 2 days in the full profile — and for joiners and leavers).
+Worked hours come only from complete punch pairs (R-ATT-03).
 
 #### R-OVT-02
 **Overtime cap.** `overtime_hours ≤ weekly_overtime_cap_hours` (FT 12 h, PT 8 h). Strictly above
 → `is_overtime_cap_exceeded = 1`, `OVERTIME_CAP_EXCEEDED`. Exactly at the cap is valid
-(boundary case).
+(boundary case). The generator keeps the clean baseline inside the cap by never letting a
+clock-out use time the rest of the week's shifts still need.
 
 ---
 

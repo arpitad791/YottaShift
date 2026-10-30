@@ -76,7 +76,7 @@ means the FK column is nullable.
 | 12 | `shift_assignment.employee_id` | `employee` | 1 : 0..N | No | — |
 | 13 | `shift_assignment.team_id` | `team` | 1 : 0..N | No | Must equal the employee's team (R-SCH-05) |
 | 14 | `shift_assignment.skill_id` | `skill` | 1 : 0..N | No | Skill covered on that shift |
-| 15 | `shift_assignment.swap_id` | `swap_request` | 0..1 : 0..2 | **Yes** | Set only for `source = SWAP`; a SWAP creates 2 assignments, a COVER creates 1 |
+| 15 | `shift_assignment.swap_id` | `swap_request` | 0..1 : 0..2 | **Yes** | Set only for `source = SWAP`; a SWAP creates 2 assignments, a COVER creates 1. Deferred FK (swap and assignments reference each other) |
 | 16 | `shift_assignment.supersedes_assignment_id` | `shift_assignment` | 0..1 : 0..1 | **Yes** | Null only for `ROSTER`; each assignment is replaced at most once (validator) |
 | 17 | `shift_assignment_event.assignment_id` | `shift_assignment` | 1 : 1..N | No | Append-only history |
 | 18 | `shift_assignment_event.leave_request_id` | `leave_request` | 0..1 : 0..N | **Yes** | Leave that caused a cancellation or replacement |

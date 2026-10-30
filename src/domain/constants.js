@@ -57,6 +57,8 @@ export const ENUMS = Object.freeze({
   SWAP_STATUS: freeze(['REQUESTED', 'APPROVED', 'REJECTED', 'APPLIED', 'CANCELLED', 'EXPIRED']),
   SWAP_REASON_CODE: freeze([
     'APPROVED_WITHIN_POLICY',
+    // One of the swap's assignments was cancelled or moved before the manager decided.
+    'ASSIGNMENT_CHANGED',
     'NOT_SAME_TEAM',
     'SKILL_NOT_HELD',
     'DOUBLE_BOOKING',

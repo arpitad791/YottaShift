@@ -157,7 +157,8 @@ CREATE TABLE shift_assignment (
   team_id                  TEXT NOT NULL REFERENCES team (team_id),
   skill_id                 TEXT NOT NULL REFERENCES skill (skill_id),
   source                   TEXT NOT NULL CHECK (source IN ('ROSTER', 'REPLACEMENT', 'SWAP')),
-  swap_id                  TEXT REFERENCES swap_request (swap_id),
+  -- Deferred: swaps reference the assignments they move, and SWAP assignments reference the swap.
+  swap_id                  TEXT REFERENCES swap_request (swap_id) DEFERRABLE INITIALLY DEFERRED,
   supersedes_assignment_id TEXT REFERENCES shift_assignment (assignment_id),
   created_at               TEXT NOT NULL CHECK (created_at GLOB '????-??-??T??:??:??+05:30' AND substr(created_at, 1, 19) IS strftime('%Y-%m-%dT%H:%M:%S', substr(created_at, 1, 19))),
   status                   TEXT NOT NULL CHECK (status IN ('SCHEDULED', 'CANCELLED', 'SWAPPED_OUT')),
@@ -269,7 +270,7 @@ CREATE TABLE swap_request (
   decided_by_role           TEXT CHECK (decided_by_role IN ('MANAGER', 'HR_PARTNER', 'SYSTEM')),
   decided_by_employee_id    TEXT REFERENCES employee (employee_id),
   decision_rule_id          TEXT CHECK (decision_rule_id GLOB 'R-[A-Z][A-Z][A-Z]-[0-9][0-9]'),
-  decision_reason_code      TEXT CHECK (decision_reason_code IN ('APPROVED_WITHIN_POLICY', 'NOT_SAME_TEAM', 'SKILL_NOT_HELD', 'DOUBLE_BOOKING', 'ON_APPROVED_LEAVE', 'EMPLOYEE_NOT_ACTIVE', 'REST_RULE_BREACH', 'CONSECUTIVE_DAYS_BREACH', 'WEEKLY_HOURS_BREACH', 'INSUFFICIENT_NOTICE', 'NO_DECISION_BEFORE_DEADLINE', 'REQUESTER_CANCELLED', 'SWAP_APPLIED')),
+  decision_reason_code      TEXT CHECK (decision_reason_code IN ('APPROVED_WITHIN_POLICY', 'ASSIGNMENT_CHANGED', 'NOT_SAME_TEAM', 'SKILL_NOT_HELD', 'DOUBLE_BOOKING', 'ON_APPROVED_LEAVE', 'EMPLOYEE_NOT_ACTIVE', 'REST_RULE_BREACH', 'CONSECUTIVE_DAYS_BREACH', 'WEEKLY_HOURS_BREACH', 'INSUFFICIENT_NOTICE', 'NO_DECISION_BEFORE_DEADLINE', 'REQUESTER_CANCELLED', 'SWAP_APPLIED')),
   applied_at                TEXT CHECK (applied_at GLOB '????-??-??T??:??:??+05:30' AND substr(applied_at, 1, 19) IS strftime('%Y-%m-%dT%H:%M:%S', substr(applied_at, 1, 19))),
   CHECK (substr(swap_id, 5, 4) = substr(requested_at, 1, 4)),
   CHECK (requester_employee_id <> counterpart_employee_id),
@@ -297,7 +298,7 @@ CREATE TABLE swap_request_event (
   actor_role        TEXT NOT NULL CHECK (actor_role IN ('EMPLOYEE', 'MANAGER', 'HR_PARTNER', 'OPS_PARTNER', 'SYSTEM')),
   actor_employee_id TEXT REFERENCES employee (employee_id),
   rule_id           TEXT CHECK (rule_id GLOB 'R-[A-Z][A-Z][A-Z]-[0-9][0-9]'),
-  reason_code       TEXT CHECK (reason_code IN ('APPROVED_WITHIN_POLICY', 'NOT_SAME_TEAM', 'SKILL_NOT_HELD', 'DOUBLE_BOOKING', 'ON_APPROVED_LEAVE', 'EMPLOYEE_NOT_ACTIVE', 'REST_RULE_BREACH', 'CONSECUTIVE_DAYS_BREACH', 'WEEKLY_HOURS_BREACH', 'INSUFFICIENT_NOTICE', 'NO_DECISION_BEFORE_DEADLINE', 'REQUESTER_CANCELLED', 'SWAP_APPLIED')),
+  reason_code       TEXT CHECK (reason_code IN ('APPROVED_WITHIN_POLICY', 'ASSIGNMENT_CHANGED', 'NOT_SAME_TEAM', 'SKILL_NOT_HELD', 'DOUBLE_BOOKING', 'ON_APPROVED_LEAVE', 'EMPLOYEE_NOT_ACTIVE', 'REST_RULE_BREACH', 'CONSECUTIVE_DAYS_BREACH', 'WEEKLY_HOURS_BREACH', 'INSUFFICIENT_NOTICE', 'NO_DECISION_BEFORE_DEADLINE', 'REQUESTER_CANCELLED', 'SWAP_APPLIED')),
   UNIQUE (swap_id, event_seq),
   CHECK ((event_seq = 1) = (from_status IS NULL)),
   CHECK ((actor_role = 'SYSTEM') = (actor_employee_id IS NULL))
@@ -372,11 +373,14 @@ CREATE TABLE attendance_reconciliation (
 -- ---------------------------------------------------------------------------------------
 
 CREATE INDEX idx_employee_team ON employee (team_id);
+CREATE INDEX idx_team_hr_partner ON team (hr_partner_employee_id);
 CREATE INDEX idx_employee_skill_skill ON employee_skill (skill_id);
 CREATE INDEX idx_coverage_lookup ON coverage_requirement (team_id, template_code, day_type);
 CREATE INDEX idx_shift_week ON shift (iso_week);
 CREATE INDEX idx_assignment_employee ON shift_assignment (employee_id);
 CREATE INDEX idx_assignment_shift_team ON shift_assignment (shift_id, team_id);
+CREATE INDEX idx_assignment_swap ON shift_assignment (swap_id);
+CREATE INDEX idx_assignment_supersedes ON shift_assignment (supersedes_assignment_id);
 CREATE INDEX idx_assignment_event_parent ON shift_assignment_event (assignment_id);
 CREATE INDEX idx_leave_employee ON leave_request (employee_id, start_date);
 CREATE INDEX idx_leave_event_parent ON leave_request_event (leave_request_id);

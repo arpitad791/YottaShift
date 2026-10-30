@@ -101,6 +101,9 @@ export function validateConfig(config) {
     'holidays',
     'coverage',
     'leaveEntitlementsPer90Days',
+    'leaveBehaviour',
+    'swapBehaviour',
+    'attendanceBehaviour',
   ]);
   number(config.seed, 'seed', { integer: true, min: 0, max: 2 ** 32 - 1 });
   object(config.window, 'window', ['startDate']);
@@ -344,7 +347,144 @@ export function validateConfig(config) {
     number(entry.sick, `${path}.sick`, { integer: true, min: 0, max: 60 });
   }
 
+  validateBehaviour(config);
   return config;
+}
+
+/** { min, max } with min <= max inside the given bounds. */
+function range(value, path, bounds) {
+  object(value, path, ['min', 'max']);
+  number(value.min, `${path}.min`, bounds);
+  number(value.max, `${path}.max`, { ...bounds, min: value.min });
+  return value;
+}
+
+const probability = (value, path) => number(value, path, { min: 0, max: 1 });
+
+// Behaviour settings drive seeded *inputs* (who asks for leave, how late someone is);
+// outcomes still come from the rules in docs/business-rules.md.
+function validateBehaviour(config) {
+  const discretionary = ENUMS.LEAVE_TYPE.filter((t) => t !== 'SICK');
+  const leave = object(config.leaveBehaviour, 'leaveBehaviour', [
+    'typeShares',
+    'durationDays',
+    'noticeDays',
+    'shortNoticeShare',
+    'decisionDelayHours',
+    'withdrawShare',
+    'cancelShare',
+    'requesterSpread',
+  ]);
+  shares(leave.typeShares, 'leaveBehaviour.typeShares', ENUMS.LEAVE_TYPE, { exactKeys: true });
+  object(leave.durationDays, 'leaveBehaviour.durationDays', [...ENUMS.LEAVE_TYPE]);
+  for (const type of ENUMS.LEAVE_TYPE) {
+    const path = `leaveBehaviour.durationDays.${type}`;
+    const durations = Object.keys(object(leave.durationDays[type], path));
+    if (!durations.every((d) => /^[1-9]\d?$/.test(d))) fail(path, 'keys must be day counts 1–99');
+    shares(leave.durationDays[type], path, durations);
+  }
+  object(leave.noticeDays, 'leaveBehaviour.noticeDays', discretionary);
+  object(leave.shortNoticeShare, 'leaveBehaviour.shortNoticeShare', discretionary);
+  for (const type of discretionary) {
+    const notice = range(leave.noticeDays[type], `leaveBehaviour.noticeDays.${type}`, {
+      integer: true,
+      min: 1,
+      max: 120,
+    });
+    // Short notice draws from 1 … minimum-1 days, so it needs a minimum above 1 to exist.
+    const share = probability(
+      leave.shortNoticeShare[type],
+      `leaveBehaviour.shortNoticeShare.${type}`,
+    );
+    if (share > 0 && notice.min < 2)
+      fail(`leaveBehaviour.shortNoticeShare.${type}`, 'needs noticeDays.min >= 2');
+  }
+  range(leave.decisionDelayHours, 'leaveBehaviour.decisionDelayHours', { min: 0.1, max: 168 });
+  probability(leave.withdrawShare, 'leaveBehaviour.withdrawShare');
+  probability(leave.cancelShare, 'leaveBehaviour.cancelShare');
+  number(leave.requesterSpread, 'leaveBehaviour.requesterSpread', { min: 0, max: 2 });
+
+  const swap = object(config.swapBehaviour, 'swapBehaviour', [
+    'swapShare',
+    'horizonDays',
+    'minLeadHours',
+    'sameSkillPreference',
+    'freeCounterpartPreference',
+    'crossTeamShare',
+    'counterpartWindowDays',
+    'meanResponseHours',
+    'maxResponseHours',
+    'cancelShare',
+    'applyDelayMinutes',
+  ]);
+  for (const key of [
+    'swapShare',
+    'sameSkillPreference',
+    'freeCounterpartPreference',
+    'crossTeamShare',
+    'cancelShare',
+  ]) {
+    probability(swap[key], `swapBehaviour.${key}`);
+  }
+  number(swap.horizonDays, 'swapBehaviour.horizonDays', { integer: true, min: 1, max: 60 });
+  number(swap.minLeadHours, 'swapBehaviour.minLeadHours', { min: 0.5, max: 48 });
+  number(swap.counterpartWindowDays, 'swapBehaviour.counterpartWindowDays', {
+    integer: true,
+    min: 0,
+    max: 30,
+  });
+  number(swap.meanResponseHours, 'swapBehaviour.meanResponseHours', { min: 0.1, max: 168 });
+  number(swap.maxResponseHours, 'swapBehaviour.maxResponseHours', {
+    min: swap.meanResponseHours,
+    max: 336,
+  });
+  range(swap.applyDelayMinutes, 'swapBehaviour.applyDelayMinutes', {
+    integer: true,
+    min: 0,
+    max: 60,
+  });
+
+  const attendance = object(config.attendanceBehaviour, 'attendanceBehaviour', [
+    'noShowShare',
+    'lateShare',
+    'lateMeanMinutes',
+    'maxLateMinutes',
+    'earlyLeaveShare',
+    'earlyLeaveMinutes',
+    'extensionShare',
+    'extensionMinutes',
+    'missingClockOutShare',
+    'manualCorrectionShare',
+    'mobileShare',
+  ]);
+  for (const key of [
+    'noShowShare',
+    'lateShare',
+    'earlyLeaveShare',
+    'extensionShare',
+    'missingClockOutShare',
+    'manualCorrectionShare',
+    'mobileShare',
+  ]) {
+    probability(attendance[key], `attendanceBehaviour.${key}`);
+  }
+  // Late arrival plus early leave must still leave a positive worked time on an 8-hour shift.
+  number(attendance.lateMeanMinutes, 'attendanceBehaviour.lateMeanMinutes', { min: 1, max: 120 });
+  number(attendance.maxLateMinutes, 'attendanceBehaviour.maxLateMinutes', {
+    integer: true,
+    min: 6,
+    max: 180,
+  });
+  range(attendance.earlyLeaveMinutes, 'attendanceBehaviour.earlyLeaveMinutes', {
+    integer: true,
+    min: 6,
+    max: 180,
+  });
+  range(attendance.extensionMinutes, 'attendanceBehaviour.extensionMinutes', {
+    integer: true,
+    min: 16,
+    max: 360,
+  });
 }
 
 export function loadConfig(path = CONFIG_PATH) {

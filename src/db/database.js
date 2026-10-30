@@ -32,9 +32,12 @@ export function loadTables(db, tables) {
   db.exec('BEGIN');
   try {
     for (const [table, rows] of tables) {
-      const expected = [...tableColumns(db, table)].sort().join();
+      const expected = tableColumns(db, table);
       rows.forEach((row, i) => {
-        if (Object.keys(row).sort().join() !== expected) {
+        if (
+          Object.keys(row).length !== expected.length ||
+          !expected.every((column) => column in row)
+        ) {
           throw new Error(`${table} row ${i}: columns do not match the schema`);
         }
       });

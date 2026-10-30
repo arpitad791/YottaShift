@@ -7,8 +7,8 @@ workflow that combine **leave requests, shift coverage, skills and labour constr
 and feasible schedules, expose every key decision and exception, keep full history, and produce
 measurable outputs.
 
-> **Status:** Phases 0–2 (setup, domain design and schema, generator core and master data)
-> complete. Phase-by-phase progress lives in
+> **Status:** Phases 0–3 complete: setup, domain design and schema, master data, and the
+> transaction workflow (leave, scheduling, swaps, attendance). Phase-by-phase progress lives in
 > [tracking.md](tracking.md). Sections marked _(Phase N)_ are filled in as that phase lands.
 
 ---
@@ -55,9 +55,9 @@ docs/            data dictionary, ERD, business rules, design notes
 src/lib/         seeded RNG, ID, date, CSV and allocation helpers
 src/domain/      enums and rule constants
 src/generator/   master data → transactions → events → anomalies
-src/scheduler/   fair, constraint-aware shift assignment
+src/scheduler/   roster state (hard rules, fairness key) and the weekly scheduler
 src/derive/      overtime, balances, coverage gaps, fairness
-src/validation/  integrity checks, anomaly detectors, ground-truth evaluation
+src/validation/  business-rule checks (anomaly detectors); integrity checks and evaluation in Phase 6
 src/export/      CSV, JSON, SQL seed, SQLite DB, manifest
 src/db/          SQLite access for the API
 src/api/         Express app
@@ -97,10 +97,21 @@ constraint violation stops it with an error and no files are written. Options:
 | `starter` | 10 | 200 | 28 | 160 | 60 |
 | `full` | 100 | 2,000 | 90 | 5,000 | 1,500 |
 
-Currently generated (Phase 2): the 10 master tables. Full profile: 2 labour policies,
-30 skills, 100 teams, 2,000 employees, 3,179 employee skills, 5,658 leave entitlements,
-4 shift templates, 5 holidays, 360 shifts, 1,490 coverage requirements. Generation takes well
-under a second.
+Currently generated (Phases 2–3): all 17 source tables. Full profile:
+
+| Master data | Rows | Transactions and events | Rows |
+| --- | --- | --- | --- |
+| labour policies | 2 | leave requests | 5,000 |
+| skills | 30 | leave request events | 10,089 |
+| teams | 100 | shift assignments | 95,930 |
+| employees | 2,000 | shift assignment events | 98,772 |
+| employee skills | 3,179 | swap requests | 1,500 |
+| leave entitlements | 5,658 | swap request events | 3,522 |
+| shift templates / holidays / shifts | 4 / 5 / 360 | attendance events | 184,535 |
+| coverage requirements | 1,490 | | |
+
+A full run takes about 10 s: about 3.5 s to generate, the rest for SQLite to load and
+constraint-check 400,000 rows. The starter profile takes under 1 s.
 
 Still to come:
 
@@ -125,6 +136,40 @@ Still to come:
   the limit and a few are short, so coverage gaps will come from the data rather than being
   injected.
 
+### How the workflow is simulated
+
+Everything runs on one timeline in time order, so every decision only sees what had happened
+before it. Behaviour (who asks for leave, how late someone is, how fast a manager answers) is
+seeded input; every **outcome** comes from a numbered rule in
+[docs/business-rules.md](docs/business-rules.md) and is stored with that rule's ID.
+
+1. **Leave** — 5,000 requests (annual, casual, sick, unpaid) are decided in decision-time order:
+   employment, overlap, balance, sick auto-approval, notice, team leave cap. Managers decide up to
+   5 days, the team's HR partner decides longer and unpaid leave, the system auto-approves sick
+   call-ins. Some requests are withdrawn or cancelled later; history is kept as events.
+   *Full profile:* 3,696 approved, 1,122 rejected (5 different reasons), 93 withdrawn,
+   89 cancelled.
+2. **Roster** — each ISO week is published 7 days ahead. For every team, date and shift the
+   scheduler fills the required headcount per skill with eligible people only (skill valid,
+   employed, not on approved leave, one shift a day, 11 h rest, ≤ 6 days in a row, weekly hour
+   limit), choosing by a fairness key (weekly load, then nights/weekends/holidays so far, then
+   total load). Unfillable demand stays a **gap**. *Full profile:* 99.1% of required headcount
+   filled, 669 short slots, never staffed above the requirement.
+3. **Late leave** — leave approved after publication cancels the affected shifts (as events) and
+   backfills them with the best eligible colleague when one exists. *Full profile:*
+   1,590 backfills.
+4. **Swaps** — 1,500 requests (exchange or cover) made against the live roster, decided by the
+   team manager with the roster as it is at decision time, or expired after 48 h, or cancelled.
+   Approved swaps create new assignments linked to the ones they replace. *Full profile:*
+   522 applied, 750 rejected (9 different reasons), 158 expired, 70 cancelled.
+5. **Attendance** — clock-in/out per worked shift (badge or mobile), late arrivals, early leaves,
+   extensions, no-shows, and missing clock-outs corrected by an ops partner. Clock-outs never
+   push a week past contract + overtime cap. *Full profile:* 184,535 events, 1,481 no-shows,
+   927 manual corrections.
+
+Fairness at full scale (Jain's index per team, 1.0 = perfectly even): nights 0.977, weekends
+0.948, hours per contracted hour 0.994.
+
 ## 7. Verify
 
 ```bash
@@ -133,7 +178,7 @@ npm run lint
 npm run format:check
 ```
 
-`npm test` (86 tests, about 1 s) covers:
+`npm test` (130 tests, about 18 s, most of it generating and loading the full profile) covers:
 
 - **Schema:** loads into SQLite and accepts a fully consistent fixture touching all 21 tables;
   enum, rule and lifecycle lists match between code, schema and docs; 17 kinds of broken rows
@@ -148,6 +193,20 @@ npm run format:check
   certification expiry; day types; requirements only for each team's pattern, with no
   overlapping effective ranges, only for skills the team holds, and within what the team could
   staff at maximum hours.
+- **Leave rules:** each decision rule on a hand-built team (balance, notice, sick auto-approval,
+  team cap, decision-time order, cancellation freeing the cap, overlap with approved and pending
+  requests, employment, HR vs manager).
+- **Scheduler:** each hard rule (double booking, rest, consecutive days, weekly hours, leave from
+  its decision time, expired certification), swap give-and-take on the same day, fairness
+  choice, and a gap instead of an unqualified fill.
+- **Transactions (both profiles):** exact leave and swap volumes; FK-clean load; **zero
+  business-rule violations** in the baseline (only uncorrected missing punches reported as
+  exceptions); byte-identical regeneration; every leave reason and decider; every swap outcome;
+  swap and backfill history links; rosters published before their week; attendance sources and
+  ops-partner corrections; gaps reported, never over-staffed.
+- **Rule checks catch problems:** double booking, leave overlap, missing skill, overtime cap,
+  unapproved swap, rest / consecutive-day / weekly-hour breaches, history without events, and
+  attendance on an unworked shift are each injected into a copy of the data and detected.
 - **CLI:** writes one CSV per table with schema-ordered headers; fails cleanly on an unknown
   profile.
 

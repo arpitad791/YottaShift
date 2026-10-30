@@ -245,5 +245,50 @@
   "leaveEntitlementsPer90Days": {
     "FULL_TIME": { "annualMin": 2, "annualMax": 18, "casual": 3, "sick": 6 },
     "PART_TIME": { "annualMin": 1, "annualMax": 11, "casual": 2, "sick": 4 }
+  },
+  "leaveBehaviour": {
+    "typeShares": { "ANNUAL": 0.35, "CASUAL": 0.3, "SICK": 0.3, "UNPAID": 0.05 },
+    "durationDays": {
+      "ANNUAL": { "1": 0.15, "2": 0.2, "3": 0.2, "4": 0.1, "5": 0.15, "7": 0.1, "10": 0.1 },
+      "CASUAL": { "1": 0.7, "2": 0.3 },
+      "SICK": { "1": 0.6, "2": 0.25, "3": 0.15 },
+      "UNPAID": { "1": 0.3, "2": 0.3, "3": 0.2, "5": 0.2 }
+    },
+    "noticeDays": {
+      "ANNUAL": { "min": 7, "max": 45 },
+      "CASUAL": { "min": 1, "max": 10 },
+      "UNPAID": { "min": 14, "max": 40 }
+    },
+    "shortNoticeShare": { "ANNUAL": 0.1, "CASUAL": 0, "UNPAID": 0.15 },
+    "decisionDelayHours": { "min": 1, "max": 48 },
+    "withdrawShare": 0.03,
+    "cancelShare": 0.04,
+    "requesterSpread": 0.5
+  },
+  "swapBehaviour": {
+    "swapShare": 0.6,
+    "horizonDays": 14,
+    "minLeadHours": 2,
+    "sameSkillPreference": 0.8,
+    "freeCounterpartPreference": 0.85,
+    "crossTeamShare": 0.02,
+    "counterpartWindowDays": 7,
+    "meanResponseHours": 12,
+    "maxResponseHours": 96,
+    "cancelShare": 0.05,
+    "applyDelayMinutes": { "min": 1, "max": 10 }
+  },
+  "attendanceBehaviour": {
+    "noShowShare": 0.015,
+    "lateShare": 0.07,
+    "lateMeanMinutes": 15,
+    "maxLateMinutes": 60,
+    "earlyLeaveShare": 0.03,
+    "earlyLeaveMinutes": { "min": 10, "max": 120 },
+    "extensionShare": 0.1,
+    "extensionMinutes": { "min": 20, "max": 150 },
+    "missingClockOutShare": 0.012,
+    "manualCorrectionShare": 0.85,
+    "mobileShare": 0.25
   }
 }

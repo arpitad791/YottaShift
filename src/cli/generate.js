@@ -10,7 +10,7 @@ import { parseArgs } from 'node:util';
 import { createDatabase, loadTables } from '../db/database.js';
 import { writeCsvTables } from '../export/csv-export.js';
 import { CONFIG_PATH, loadConfig } from '../generator/config.js';
-import { generateMasterData } from '../generator/master/index.js';
+import { generateDataset } from '../generator/index.js';
 
 function main() {
   const { values } = parseArgs({
@@ -23,7 +23,7 @@ function main() {
 
   const started = performance.now();
   const config = loadConfig(values.config);
-  const { tables, window } = generateMasterData(config, values.profile);
+  const { tables, window, stats } = generateDataset(config, values.profile);
 
   const db = createDatabase();
   loadTables(db, tables);
@@ -38,6 +38,9 @@ function main() {
   console.log(`YottaShift generator — profile "${values.profile}", seed ${config.seed}`);
   console.log(`Window ${window.startDate} → ${window.endDate} (${window.days} days)`);
   console.table(Object.fromEntries(written.map(({ table, rows }) => [table, { rows }])));
+  console.log(
+    `Backfilled shifts: ${stats.backfilled}; swap requests not placed: ${stats.swapShortfall}; approved swaps not applied: ${stats.unappliedApprovals}`,
+  );
   console.log(
     `Wrote ${written.length} CSV files to ${dir} in ${Math.round(performance.now() - started)} ms`,
   );

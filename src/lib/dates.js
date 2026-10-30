@@ -66,6 +66,23 @@ export function toTimestamp(date, time) {
   return `${date}T${full}${TIMEZONE.offset}`;
 }
 
+/**
+ * Timestamp → milliseconds of local wall-clock time (as if UTC). Only meaningful for ordering
+ * and differences; convert back with timestampFromMs. Used in hot loops instead of strings.
+ */
+export function timestampMs(timestamp) {
+  return timestampToMs(timestamp);
+}
+
+export function timestampFromMs(ms) {
+  return msToTimestamp(ms);
+}
+
+/** Midnight at the start of a date, in the same millisecond scale as timestampMs. */
+export function dateMs(date) {
+  return dateToMs(date);
+}
+
 function timestampToMs(timestamp) {
   const match = TIMESTAMP_RE.exec(timestamp);
   if (!match || match[5] !== TIMEZONE.offset) {

@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { createDatabase, loadTables, tableColumns } from '../src/db/database.js';
 import { ENUMS, ID_PATTERNS } from '../src/domain/constants.js';
 import { loadConfig } from '../src/generator/config.js';
+import { generateDataset } from '../src/generator/index.js';
 import { generateMasterData } from '../src/generator/master/index.js';
 import { addDays, isWeekend } from '../src/lib/dates.js';
 
@@ -265,7 +266,8 @@ describe('distributions at full scale', () => {
 });
 
 describe('generate CLI', () => {
-  it('writes one CSV per master table with schema-ordered headers', () => {
+  it('writes one CSV per table with schema-ordered headers', () => {
+    const dataset = generateDataset(config, 'starter');
     const out = mkdtempSync(join(tmpdir(), 'yottashift-'));
     try {
       execFileSync(
@@ -275,9 +277,9 @@ describe('generate CLI', () => {
       );
       const dir = join(out, 'starter', 'csv');
       const db = createDatabase();
-      const expected = generated.starter.tables.map(([name]) => `${name}.csv`).sort();
+      const expected = dataset.tables.map(([name]) => `${name}.csv`).sort();
       assert.deepEqual(readdirSync(dir).sort(), expected);
-      for (const [name, rows] of generated.starter.tables) {
+      for (const [name, rows] of dataset.tables) {
         const lines = readFileSync(join(dir, `${name}.csv`), 'utf8')
           .trimEnd()
           .split('\n');

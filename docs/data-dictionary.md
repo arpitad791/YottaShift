@@ -52,11 +52,11 @@ IDs are deterministic, zero-padded, immutable and identical in every export (R-G
 ## 3. Table catalogue
 
 Load order is parent first, which is also the generation order (Step 2 of the brief). Volumes
-are for the full profile: tables 1–10 are exact generated counts (seed `20261022`), the rest
-are estimates until their phase lands. Exact counts for every table go into the manifest
+are exact generated counts for the full profile (seed `20261022`) for tables 1–17; the derived
+tables 18–21 are estimates until Phase 4. Exact counts for every table go into the manifest
 (Phase 7).
 
-| # | Table | Core entity | Kind | Grain | Primary key | ≈ Rows (full) |
+| # | Table | Core entity | Kind | Grain | Primary key | Rows (full) |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `labor_policy` | (supports Employee) | master | employment type × effective period | `policy_id` | 2 |
 | 2 | `team` | **Team** | master | team | `team_id` | 100 |
@@ -68,13 +68,13 @@ are estimates until their phase lands. Exact counts for every table go into the 
 | 8 | `holiday_calendar` | **HolidayCalendar** | master | holiday date | `holiday_id` | 5 |
 | 9 | `shift` | (instance of ShiftTemplate) | master | date × template | `shift_id` | 360 |
 | 10 | `coverage_requirement` | **CoverageRequirement** | master | team × template × skill × day type × effective period | `coverage_id` | 1,490 |
-| 11 | `shift_assignment` | **ShiftAssignment** | roster | employee × shift (one version) | `assignment_id` | ~120,000 |
-| 12 | `shift_assignment_event` | (history) | event | assignment status change | `event_id` | ~125,000 |
+| 11 | `shift_assignment` | **ShiftAssignment** | roster | employee × shift (one version) | `assignment_id` | 95,930 |
+| 12 | `shift_assignment_event` | (history) | event | assignment status change | `event_id` | 98,772 |
 | 13 | `leave_request` | **LeaveRequest** | transaction | request | `leave_request_id` | 5,000 |
-| 14 | `leave_request_event` | (history) | event | request status change | `event_id` | ~10,500 |
-| 15 | `attendance_event` | **AttendanceEvent** | event | punch / no-show | `attendance_event_id` | ~230,000 |
-| 16 | `swap_request` | **SwapRequest** | transaction | request | `swap_id` | ~1,500 |
-| 17 | `swap_request_event` | (history) | event | request status change | `event_id` | ~3,500 |
+| 14 | `leave_request_event` | (history) | event | request status change | `event_id` | 10,089 |
+| 15 | `attendance_event` | **AttendanceEvent** | event | punch / no-show | `attendance_event_id` | 184,535 |
+| 16 | `swap_request` | **SwapRequest** | transaction | request | `swap_id` | 1,500 |
+| 17 | `swap_request_event` | (history) | event | request status change | `event_id` | 3,522 |
 | 18 | `employee_week_summary` | derived | derived | employee × ISO week | (`employee_id`, `iso_week`) | ~27,000 |
 | 19 | `coverage_status` | derived | derived | shift × team × skill | (`shift_id`, `team_id`, `skill_id`) | ~45,000 |
 | 20 | `leave_balance` | derived | derived | employee × leave type | (`employee_id`, `leave_type`) | 6,000 |
@@ -232,7 +232,7 @@ All four templates exist on every date; a team only uses the ones in its pattern
 | `team_id` | TEXT | Req | a `TEAM-` ID | — | — | FK → `team`; = employee's team (R-SCH-05) |
 | `skill_id` | TEXT | Req | the skill this person covers on the shift | — | — | FK → `skill`; held and valid (R-SCH-03) |
 | `source` | TEXT | Req | `ROSTER`, `REPLACEMENT`, `SWAP` | — | — | Enum |
-| `swap_id` | TEXT | Opt | set only for `SWAP` | — | — | FK → `swap_request`; set **iff** `source = SWAP` |
+| `swap_id` | TEXT | Opt | set only for `SWAP` | — | — | FK → `swap_request` (deferred: swaps and their assignments reference each other); set **iff** `source = SWAP` |
 | `supersedes_assignment_id` | TEXT | Opt | the assignment this one replaces | — | — | FK → `shift_assignment`; null **iff** `source = ROSTER`; never itself |
 | `created_at` | TIMESTAMP | Req | roster publication time, or the time of the leave decision / swap | — | — | < shift `start_at` (validator) |
 | `status` | TEXT | Req | `SCHEDULED`, `CANCELLED`, `SWAPPED_OUT` | — | — | Enum; = last event's `to_status` (R-GEN-01) |
@@ -332,7 +332,7 @@ A full chain looks like: E01 `null → SUBMITTED` (EMPLOYEE) → E02 `SUBMITTED 
 | `decided_by_role` | TEXT | Opt | `MANAGER`, or `SYSTEM` for expiry | — | — | Set with `decided_at` |
 | `decided_by_employee_id` | TEXT | Opt | the team manager | — | — | FK → `employee`; null **iff** `SYSTEM` |
 | `decision_rule_id` | TEXT | Opt | `R-SWP-0x` | — | — | Set with `decided_at` |
-| `decision_reason_code` | TEXT | Opt | approve / reject / expiry reason | — | — | Set with `decided_at`; enum |
+| `decision_reason_code` | TEXT | Opt | approve / reject / expiry reason, incl. `ASSIGNMENT_CHANGED` when a shift was cancelled before the decision | — | — | Set with `decided_at`; enum |
 | `applied_at` | TIMESTAMP | Opt | set only when `APPLIED` | — | — | Set **iff** `APPLIED`; ≤ approval + 10 min and < shift start (validator) |
 
 `APPLIED` without a decision is structurally allowed so that `SWAP_WITHOUT_APPROVAL` can be
