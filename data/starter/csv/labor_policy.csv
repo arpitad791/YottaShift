@@ -1,0 +1,3 @@
+policy_id,employment_type,contracted_weekly_hours,max_weekly_scheduled_hours,weekly_overtime_cap_hours,min_rest_hours,max_consecutive_days,effective_from,effective_to
+POL-FT-2026,FULL_TIME,40,48,12,11,6,2026-01-01,
+POL-PT-2026,PART_TIME,24,32,8,11,6,2026-01-01,

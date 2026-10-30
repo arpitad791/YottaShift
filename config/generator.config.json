@@ -1,0 +1,249 @@
+{
+  "seed": 20261022,
+  "window": {
+    "startDate": "2026-01-01"
+  },
+  "profiles": {
+    "starter": {
+      "teams": 10,
+      "employees": 200,
+      "days": 28,
+      "leaveRequests": 160,
+      "swapRequests": 60
+    },
+    "full": {
+      "teams": 100,
+      "employees": 2000,
+      "days": 90,
+      "leaveRequests": 5000,
+      "swapRequests": 1500
+    }
+  },
+  "laborPolicies": [
+    {
+      "code": "FT",
+      "employmentType": "FULL_TIME",
+      "contractedWeeklyHours": 40,
+      "maxWeeklyScheduledHours": 48,
+      "weeklyOvertimeCapHours": 12,
+      "minRestHours": 11,
+      "maxConsecutiveDays": 6
+    },
+    {
+      "code": "PT",
+      "employmentType": "PART_TIME",
+      "contractedWeeklyHours": 24,
+      "maxWeeklyScheduledHours": 32,
+      "weeklyOvertimeCapHours": 8,
+      "minRestHours": 11,
+      "maxConsecutiveDays": 6
+    }
+  ],
+  "workforce": {
+    "partTimeShare": 0.18,
+    "leadShare": 0.1,
+    "teamsPerHrPartner": 12,
+    "teamsPerOpsPartner": 20,
+    "joinerShare": 0.03,
+    "leaverShare": 0.02,
+    "meanTenureDays": 900,
+    "maxTenureDays": 3650,
+    "teamCreatedFrom": "2018-01-01",
+    "teamCreatedTo": "2024-12-31",
+    "secondarySkillProbability": 0.3,
+    "crossTeamSkillProbability": 0.15,
+    "certificationExpiringShare": 0.08,
+    "teamSizeSpread": 0.25
+  },
+  "sites": {
+    "BLR": 0.35,
+    "HYD": 0.25,
+    "PUN": 0.2,
+    "CHN": 0.2
+  },
+  "operatingPatterns": {
+    "TWENTY_FOUR_SEVEN": {
+      "templates": ["A", "B", "C"],
+      "staffsWeekends": true,
+      "staffsHolidays": true,
+      "sizeWeight": 1.35,
+      "minTeamSize": 14
+    },
+    "EXTENDED_HOURS": {
+      "templates": ["A", "B"],
+      "staffsWeekends": true,
+      "staffsHolidays": true,
+      "sizeWeight": 1.0,
+      "minTeamSize": 10
+    },
+    "BUSINESS_HOURS": {
+      "templates": ["G"],
+      "staffsWeekends": false,
+      "staffsHolidays": false,
+      "sizeWeight": 0.65,
+      "minTeamSize": 6
+    }
+  },
+  "teamFunctions": {
+    "CUSTOMER_SUPPORT": {
+      "label": "Customer Support",
+      "share": 0.25,
+      "patterns": { "TWENTY_FOUR_SEVEN": 0.4, "EXTENDED_HOURS": 0.6 },
+      "skills": [
+        { "name": "Voice Support", "category": "TECHNICAL", "certificationValidityDays": null },
+        { "name": "Chat Support", "category": "TECHNICAL", "certificationValidityDays": null },
+        { "name": "Email Support", "category": "TECHNICAL", "certificationValidityDays": null },
+        {
+          "name": "Hindi Language Support",
+          "category": "LANGUAGE",
+          "certificationValidityDays": null
+        },
+        {
+          "name": "Tamil Language Support",
+          "category": "LANGUAGE",
+          "certificationValidityDays": null
+        },
+        { "name": "Billing Queries", "category": "OPERATIONAL", "certificationValidityDays": null }
+      ]
+    },
+    "WAREHOUSE": {
+      "label": "Warehouse",
+      "share": 0.2,
+      "patterns": { "TWENTY_FOUR_SEVEN": 0.3, "EXTENDED_HOURS": 0.5, "BUSINESS_HOURS": 0.2 },
+      "skills": [
+        {
+          "name": "Picking and Packing",
+          "category": "OPERATIONAL",
+          "certificationValidityDays": null
+        },
+        {
+          "name": "Inventory Control",
+          "category": "OPERATIONAL",
+          "certificationValidityDays": null
+        },
+        { "name": "Forklift Operation", "category": "SAFETY", "certificationValidityDays": 365 },
+        { "name": "Hazmat Handling", "category": "SAFETY", "certificationValidityDays": 730 },
+        {
+          "name": "Dispatch Coordination",
+          "category": "OPERATIONAL",
+          "certificationValidityDays": null
+        }
+      ]
+    },
+    "FIELD_SERVICE": {
+      "label": "Field Service",
+      "share": 0.15,
+      "patterns": { "EXTENDED_HOURS": 0.4, "BUSINESS_HOURS": 0.6 },
+      "skills": [
+        {
+          "name": "Network Installation",
+          "category": "TECHNICAL",
+          "certificationValidityDays": null
+        },
+        { "name": "HVAC Repair", "category": "TECHNICAL", "certificationValidityDays": 730 },
+        { "name": "Electrical Work", "category": "SAFETY", "certificationValidityDays": 365 },
+        {
+          "name": "Light Vehicle Driving",
+          "category": "OPERATIONAL",
+          "certificationValidityDays": 1095
+        }
+      ]
+    },
+    "SECURITY": {
+      "label": "Security",
+      "share": 0.15,
+      "patterns": { "TWENTY_FOUR_SEVEN": 0.9, "EXTENDED_HOURS": 0.1 },
+      "skills": [
+        { "name": "Access Control", "category": "OPERATIONAL", "certificationValidityDays": null },
+        { "name": "CCTV Monitoring", "category": "TECHNICAL", "certificationValidityDays": null },
+        { "name": "Patrol", "category": "OPERATIONAL", "certificationValidityDays": null },
+        { "name": "Fire Safety", "category": "SAFETY", "certificationValidityDays": 365 }
+      ]
+    },
+    "IT_NOC": {
+      "label": "IT NOC",
+      "share": 0.1,
+      "patterns": { "TWENTY_FOUR_SEVEN": 0.7, "EXTENDED_HOURS": 0.3 },
+      "skills": [
+        {
+          "name": "Network Monitoring",
+          "category": "TECHNICAL",
+          "certificationValidityDays": null
+        },
+        { "name": "Incident Response", "category": "TECHNICAL", "certificationValidityDays": null },
+        {
+          "name": "Linux Administration",
+          "category": "TECHNICAL",
+          "certificationValidityDays": null
+        },
+        { "name": "Database Support", "category": "TECHNICAL", "certificationValidityDays": null }
+      ]
+    },
+    "FACILITIES": {
+      "label": "Facilities",
+      "share": 0.15,
+      "patterns": { "EXTENDED_HOURS": 0.4, "BUSINESS_HOURS": 0.6 },
+      "skills": [
+        { "name": "Housekeeping", "category": "OPERATIONAL", "certificationValidityDays": null },
+        { "name": "Plumbing", "category": "TECHNICAL", "certificationValidityDays": null },
+        {
+          "name": "Electrical Maintenance",
+          "category": "SAFETY",
+          "certificationValidityDays": 365
+        },
+        { "name": "HVAC Maintenance", "category": "TECHNICAL", "certificationValidityDays": null }
+      ]
+    }
+  },
+  "workforceOffice": {
+    "label": "Workforce Office",
+    "site": "BLR",
+    "managerSkill": {
+      "name": "Workforce Planning",
+      "category": "LEADERSHIP",
+      "certificationValidityDays": null
+    },
+    "hrPartnerSkill": {
+      "name": "HR Advisory",
+      "category": "LEADERSHIP",
+      "certificationValidityDays": null
+    },
+    "opsPartnerSkill": {
+      "name": "Attendance Operations",
+      "category": "OPERATIONAL",
+      "certificationValidityDays": null
+    }
+  },
+  "shiftTemplates": [
+    { "code": "A", "name": "Morning", "startTime": "06:00", "endTime": "14:00", "isNight": false },
+    { "code": "B", "name": "Evening", "startTime": "14:00", "endTime": "22:00", "isNight": false },
+    { "code": "C", "name": "Night", "startTime": "22:00", "endTime": "06:00", "isNight": true },
+    { "code": "G", "name": "General", "startTime": "09:00", "endTime": "17:00", "isNight": false }
+  ],
+  "templatesEffectiveFrom": "2020-01-01",
+  "holidays": [
+    { "date": "2026-01-01", "name": "New Year's Day", "type": "COMPANY" },
+    { "date": "2026-01-14", "name": "Makar Sankranti / Pongal", "type": "PUBLIC" },
+    { "date": "2026-01-26", "name": "Republic Day", "type": "PUBLIC" },
+    { "date": "2026-03-04", "name": "Holi", "type": "PUBLIC" },
+    { "date": "2026-03-20", "name": "Eid al-Fitr", "type": "PUBLIC" }
+  ],
+  "coverage": {
+    "templateWeights": { "A": 1, "B": 1, "C": 0.7, "G": 1 },
+    "weekendFactor": 0.75,
+    "holidayFactor": 0.6,
+    "expectedLeaveShare": 0.05,
+    "demandTiers": [
+      { "share": 0.8, "min": 0.8, "max": 0.95 },
+      { "share": 0.15, "min": 0.95, "max": 1.05 },
+      { "share": 0.05, "min": 1.1, "max": 1.25 }
+    ],
+    "skillsPerTeam": { "min": 2, "max": 3 },
+    "revisionTeamShare": 0.15,
+    "revisionFactor": { "min": 0.8, "max": 1.25 }
+  },
+  "leaveEntitlementsPer90Days": {
+    "FULL_TIME": { "annualMin": 2, "annualMax": 18, "casual": 3, "sick": 6 },
+    "PART_TIME": { "annualMin": 1, "annualMax": 11, "casual": 2, "sick": 4 }
+  }
+}

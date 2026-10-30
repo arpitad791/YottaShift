@@ -7,7 +7,8 @@ workflow that combine **leave requests, shift coverage, skills and labour constr
 and feasible schedules, expose every key decision and exception, keep full history, and produce
 measurable outputs.
 
-> **Status:** Phases 0–1 (setup, domain design, schema) complete. Phase-by-phase progress lives in
+> **Status:** Phases 0–2 (setup, domain design and schema, generator core and master data)
+> complete. Phase-by-phase progress lives in
 > [tracking.md](tracking.md). Sections marked _(Phase N)_ are filled in as that phase lands.
 
 ---
@@ -51,7 +52,7 @@ Full reasoning and rejected alternatives: [tracking.md §8](tracking.md#8-decisi
 config/          generator settings: seed + starter/full scale profiles
 sql/             schema.sql
 docs/            data dictionary, ERD, business rules, design notes
-src/lib/         seeded RNG, ID, date, CSV and hashing helpers
+src/lib/         seeded RNG, ID, date, CSV and allocation helpers
 src/domain/      enums and rule constants
 src/generator/   master data → transactions → events → anomalies
 src/scheduler/   fair, constraint-aware shift assignment
@@ -75,17 +76,54 @@ Requirements: **Node.js 24+** and npm. No database server or external service is
 npm install
 ```
 
-## 6. Run _(Phases 2–9)_
+## 6. Run
 
-Commands are added as each phase lands. Planned:
+```bash
+npm run generate -- --profile starter
+```
 
-| Command | Does |
-| --- | --- |
-| `npm run generate -- --profile starter` | Small dataset with the same generator and seed |
-| `npm run generate -- --profile full` | 2,000 employees, 100 teams, 90 days, 5,000 leave requests |
-| `npm run validate -- --profile full` | Integrity checks, anomaly detection, ground-truth evaluation |
-| `npm run reproduce` | Generate twice with seed `20261022` and compare row counts + checksums |
-| `npm run api` / `npm run client` | Local API and dashboard |
+```bash
+npm run generate -- --profile full
+```
+
+Both profiles use the same generator and seed (`20261022`); only the scale differs
+(`config/generator.config.json`). Output goes to `data/<profile>/csv/`, one file per table.
+Before writing, the run loads every row into an in-memory copy of `sql/schema.sql`, so a
+constraint violation stops it with an error and no files are written. Options:
+`--out <dir>` (default `data`), `--config <file>`.
+
+| Profile | Teams | Employees | Days | Leave requests | Swap requests |
+| --- | --- | --- | --- | --- | --- |
+| `starter` | 10 | 200 | 28 | 160 | 60 |
+| `full` | 100 | 2,000 | 90 | 5,000 | 1,500 |
+
+Currently generated (Phase 2): the 10 master tables. Full profile: 2 labour policies,
+30 skills, 100 teams, 2,000 employees, 3,179 employee skills, 5,658 leave entitlements,
+4 shift templates, 5 holidays, 360 shifts, 1,490 coverage requirements. Generation takes well
+under a second.
+
+Still to come:
+
+| Command | Does | Phase |
+| --- | --- | --- |
+| `npm run validate -- --profile full` | Integrity checks, anomaly detection, ground-truth evaluation | 6 |
+| `npm run reproduce` | Generate twice with seed `20261022` and compare row counts + checksums | 7 |
+| `npm run api` / `npm run client` | Local API and dashboard | 8–9 |
+
+### How the master data is generated
+
+- **Parents first:** labour policies → skills → teams and employees → employee skills → leave
+  entitlements → shift templates → holidays → shifts → coverage requirements.
+- **Seeded randomness only:** one seeded generator (sfc32), with a separate named stream per
+  step, so changing one step never shifts another step's numbers. ESLint bans `Math.random`.
+- **Realistic variation:** six team functions with their own skill pools; 24×7, extended-hours
+  and business-hours teams (10–33 people); about 15% part-time members; joiners and leavers
+  inside the window; certifications that lapse mid-window; a mid-window demand revision for
+  some teams.
+- **Demand from supply:** each team's minimum staffing is sized from the real weekly hours of
+  its members, multiplied by a demand ratio. Most teams can cover their demand, some are at
+  the limit and a few are short, so coverage gaps will come from the data rather than being
+  injected.
 
 ## 7. Verify
 
@@ -95,10 +133,23 @@ npm run lint
 npm run format:check
 ```
 
-`npm test` currently runs the schema suite: the schema loads into SQLite and accepts a fully
-consistent fixture touching all 21 tables; enum, rule and lifecycle lists match between code,
-schema and docs; 17 kinds of broken rows are each rejected by the constraint that should catch
-them; labelled anomalies remain loadable.
+`npm test` (86 tests, about 1 s) covers:
+
+- **Schema:** loads into SQLite and accepts a fully consistent fixture touching all 21 tables;
+  enum, rule and lifecycle lists match between code, schema and docs; 17 kinds of broken rows
+  are each rejected by the constraint that should catch them; labelled anomalies stay loadable.
+- **Helpers:** seeded RNG determinism and stream independence, ISO weeks and timestamps across
+  midnight and year ends, ID formats and overflow, exact allocation, CSV quoting.
+- **Config:** the shipped config is valid; typos, missing keys, bad shares, bad enums and
+  impossible dates are rejected.
+- **Master data (both profiles):** volumes from the brief; loads with every FK resolved;
+  identical on regeneration and different with another seed; one manager per team; HR and ops
+  partners only in the Workforce Office; policies match employment types; skill validity and
+  certification expiry; day types; requirements only for each team's pattern, with no
+  overlapping effective ranges, only for skills the team holds, and within what the team could
+  staff at maximum hours.
+- **CLI:** writes one CSV per table with schema-ordered headers; fails cleanly on an unknown
+  profile.
 
 _(Phase 6–7: how to read the validation summary and reproducibility report.)_
 
@@ -146,7 +197,11 @@ labelled too.
   partners, so every HR decision and manual punch correction traces to a person.
 - Managers, HR partners and ops partners are not rostered; employees stay in one team for the
   whole window.
-- All data is synthetic. No real people, no external datasets.
+- All data is synthetic. No real people, no external datasets. Names are random combinations
+  of common given names and surnames.
+- The holiday calendar is a synthetic company calendar modelled on common Indian holidays
+  (New Year's Day, Makar Sankranti / Pongal, Republic Day, Holi, Eid al-Fitr). Dates of
+  moveable festivals are approximate and not an authoritative list.
 
 Full list: [tracking.md §9](tracking.md#9-open-questions--assumptions).
 

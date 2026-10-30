@@ -1,0 +1,5 @@
+template_code,template_name,start_time,end_time,duration_minutes,is_overnight,is_night,effective_from,effective_to
+A,Morning,06:00,14:00,480,0,0,2020-01-01,
+B,Evening,14:00,22:00,480,0,0,2020-01-01,
+C,Night,22:00,06:00,480,1,1,2020-01-01,
+G,General,09:00,17:00,480,0,0,2020-01-01,

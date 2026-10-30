@@ -52,20 +52,22 @@ IDs are deterministic, zero-padded, immutable and identical in every export (R-G
 ## 3. Table catalogue
 
 Load order is parent first, which is also the generation order (Step 2 of the brief). Volumes
-are full-profile estimates; exact counts are written to the manifest (Phase 7).
+are for the full profile: tables 1–10 are exact generated counts (seed `20261022`), the rest
+are estimates until their phase lands. Exact counts for every table go into the manifest
+(Phase 7).
 
 | # | Table | Core entity | Kind | Grain | Primary key | ≈ Rows (full) |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `labor_policy` | (supports Employee) | master | employment type × effective period | `policy_id` | 2 |
 | 2 | `team` | **Team** | master | team | `team_id` | 100 |
-| 3 | `skill` | **Skill** | master | skill | `skill_id` | 24 |
+| 3 | `skill` | **Skill** | master | skill | `skill_id` | 30 |
 | 4 | `employee` | **Employee** | master | employee | `employee_id` | 2,000 |
-| 5 | `employee_skill` | (bridge Employee N:M Skill) | master | employee × skill | (`employee_id`, `skill_id`) | ~5,000 |
-| 6 | `leave_entitlement` | (supports LeaveRequest) | master | employee × leave type × period | (`employee_id`, `leave_type`, `period_start`) | 6,000 |
+| 5 | `employee_skill` | (bridge Employee N:M Skill) | master | employee × skill | (`employee_id`, `skill_id`) | 3,179 |
+| 6 | `leave_entitlement` | (supports LeaveRequest) | master | employee × leave type × period | (`employee_id`, `leave_type`, `period_start`) | 5,658 (1,886 schedulable × 3) |
 | 7 | `shift_template` | **ShiftTemplate** | master | template | `template_code` | 4 |
 | 8 | `holiday_calendar` | **HolidayCalendar** | master | holiday date | `holiday_id` | 5 |
 | 9 | `shift` | (instance of ShiftTemplate) | master | date × template | `shift_id` | 360 |
-| 10 | `coverage_requirement` | **CoverageRequirement** | master | team × template × skill × day type × effective period | `coverage_id` | ~2,000 |
+| 10 | `coverage_requirement` | **CoverageRequirement** | master | team × template × skill × day type × effective period | `coverage_id` | 1,490 |
 | 11 | `shift_assignment` | **ShiftAssignment** | roster | employee × shift (one version) | `assignment_id` | ~120,000 |
 | 12 | `shift_assignment_event` | (history) | event | assignment status change | `event_id` | ~125,000 |
 | 13 | `leave_request` | **LeaveRequest** | transaction | request | `leave_request_id` | 5,000 |
@@ -104,7 +106,7 @@ are full-profile estimates; exact counts are written to the manifest (Phase 7).
 | Field | Type | Req | Allowed values / format | Units | Unique | Validation rule |
 | --- | --- | --- | --- | --- | --- | --- |
 | `team_id` | TEXT | Req | `TEAM-001` … `TEAM-100` | — | PK | `TEAM-\d{3}` |
-| `team_name` | TEXT | Req | e.g. `Support Alpha` | — | Unique | Non-blank |
+| `team_name` | TEXT | Req | `<function label> <site> <NN>`, e.g. `Customer Support BLR 01`; `Workforce Office` | — | Unique | Non-blank |
 | `team_function` | TEXT | Req | `CUSTOMER_SUPPORT`, `WAREHOUSE`, `FIELD_SERVICE`, `SECURITY`, `IT_NOC`, `FACILITIES`, `WORKFORCE_OFFICE` | — | — | Enum; decides the skill pool. Exactly one `WORKFORCE_OFFICE` team (no coverage, never rostered) |
 | `site_code` | TEXT | Req | `BLR`, `HYD`, `PUN`, `CHN` (synthetic sites) | — | — | Enum |
 | `operating_pattern` | TEXT | Req | `TWENTY_FOUR_SEVEN`, `EXTENDED_HOURS`, `BUSINESS_HOURS` | — | — | Enum; templates per R-COV-02 |
@@ -118,7 +120,7 @@ are full-profile estimates; exact counts are written to the manifest (Phase 7).
 | Field | Type | Req | Allowed values / format | Units | Unique | Validation rule |
 | --- | --- | --- | --- | --- | --- | --- |
 | `skill_id` | TEXT | Req | `SKL-001` … | — | PK | `SKL-\d{3}` |
-| `skill_name` | TEXT | Req | from the skill catalogue in `config/` (e.g. `Forklift Operation`) | — | Unique | Non-blank |
+| `skill_name` | TEXT | Req | from the skill catalogue in `config/generator.config.json` (e.g. `Forklift Operation`); 4–6 skills per team function + 3 Workforce Office skills | — | Unique | Non-blank |
 | `skill_category` | TEXT | Req | `TECHNICAL`, `SAFETY`, `LANGUAGE`, `OPERATIONAL`, `LEADERSHIP` | — | — | Enum |
 | `requires_certification` | BOOLEAN | Req | 0 / 1 | — | — | 0/1 |
 | `certification_validity_days` | INTEGER | Opt | e.g. 365; null when no certification | days | — | > 0; set **iff** `requires_certification = 1` |
@@ -158,7 +160,7 @@ One row per (employee, skill); renewals are out of scope (a lapsed certification
 | `leave_type` | TEXT | Req | `ANNUAL`, `CASUAL`, `SICK` | — | PK part | Enum (UNPAID has no entitlement) |
 | `period_start` | DATE | Req | window start | — | PK part | Valid date |
 | `period_end` | DATE | Req | window end | — | — | ≥ `period_start` |
-| `entitled_days` | INTEGER | Req | ANNUAL 2–18 (carry-over + accrual), CASUAL 3, SICK 6 (FT; PT prorated) | days | — | 0–60 |
+| `entitled_days` | INTEGER | Req | Per 90 days: ANNUAL FT 2–18 / PT 1–11 (carry-over + accrual), CASUAL 3 / 2, SICK 6 / 4; scaled to the window length and to the days employed in it (joiners, leavers) | days | — | 0–60 |
 
 ### 4.7 `shift_template` — **ShiftTemplate**
 
@@ -212,7 +214,7 @@ All four templates exist on every date; a team only uses the ones in its pattern
 | `template_code` | TEXT | Req | within the team's pattern | — | Unique key part | FK → `shift_template`; R-COV-02 (validator) |
 | `skill_id` | TEXT | Req | a skill some team member holds | — | Unique key part | FK → `skill` |
 | `day_type` | TEXT | Req | `WEEKDAY`, `WEEKEND`, `HOLIDAY` | — | Unique key part | Enum; none for WEEKEND/HOLIDAY in `BUSINESS_HOURS` teams |
-| `min_headcount` | INTEGER | Req | typically 1–6 | people | — | 1–50 (no requirement = no row) |
+| `min_headcount` | INTEGER | Req | 1–8 in the full profile | people | — | 1–50 (no requirement = no row) |
 | `effective_from` | DATE | Req | window start, or a mid-window revision date | — | Unique key part | Valid date |
 | `effective_to` | DATE | Opt | null = open-ended | — | — | ≥ `effective_from`; ranges for the same key never overlap (validator) |
 

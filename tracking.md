@@ -16,7 +16,7 @@ traceability matrix and the change log at the end of every phase.
 | Build | Fully local, no paid or hosted services |
 | Stack | Node.js 24 (ESM) · Express 5 · React 19 + Vite · SQLite (built-in `node:sqlite`) · `node:test` · ESLint + Prettier |
 | Fixed seed | `20261022` |
-| Current phase | Phase 1 — done; next: Phase 2 |
+| Current phase | Phase 2 — done; next: Phase 3 |
 
 ## 2. Working agreement
 
@@ -35,8 +35,8 @@ traceability matrix and the change log at the end of every phase.
 | --- | --- | --- | --- |
 | 0 | Setup & planning | tracking.md, README skeleton, folder structure, tooling, AI-disclosure folder | ✅ Done |
 | 1 | Domain design & data dictionary | data dictionary (all 10 entities + supporting tables), ERD + cardinality, lifecycle state machines, business-rule catalogue, `sql/schema.sql`, enum constants | ✅ Done |
-| 2 | Generator core & master data | seeded RNG, ID helpers, scale profiles, LaborPolicy, Team, Skill, Employee, EmployeeSkill, LeaveEntitlement, ShiftTemplate, HolidayCalendar, Shift, CoverageRequirement | ⏳ Next |
-| 3 | Transactions & events | LeaveRequest + rule-based decisions, scheduler (ShiftAssignment), AttendanceEvent, SwapRequest with manager approval — all with event history | ⬜ |
+| 2 | Generator core & master data | seeded RNG, ID helpers, scale profiles, LaborPolicy, Team, Skill, Employee, EmployeeSkill, LeaveEntitlement, ShiftTemplate, HolidayCalendar, Shift, CoverageRequirement | ✅ Done |
+| 3 | Transactions & events | LeaveRequest + rule-based decisions, scheduler (ShiftAssignment), AttendanceEvent, SwapRequest with manager approval — all with event history | ⏳ Next |
 | 4 | Derived values & metrics | overtime, leave balances, coverage gaps, attendance reconciliation, fairness scores — computed from source records | ⬜ |
 | 5 | Edge-case injection & ground truth | 5 required anomaly types + boundary cases, `ground_truth.csv/json` kept separate | ⬜ |
 | 6 | Validation & evaluation | integrity checks, rule detectors, detector-vs-ground-truth scoring, validation summary | ⬜ |
@@ -79,18 +79,20 @@ Exit criteria: lint and format check pass on the scaffold. Suggested commit: `ch
 Verified: `npm test` 25/25 pass, `npm run lint` clean, `npm run format:check` clean (2026-10-30).
 Suggested commit: `docs: data dictionary, ERD, business rules and SQL schema`
 
-### Phase 2 — Generator core & master data
+### Phase 2 — Generator core & master data ✅
 
-- [ ] `src/lib/rng.js`: seeded PRNG (no `Math.random` anywhere); helpers for int ranges, weighted pick, normal-ish draws, shuffle
-- [ ] `src/lib/ids.js`: zero-padded deterministic ID formatters ([data dictionary §2](docs/data-dictionary.md#2-id-conventions)), checked against `ID_PATTERNS`; IDs never reassigned
-- [ ] `src/lib/dates.js`: ISO-8601 date/time helpers, fixed `+05:30` offset, ISO weeks, overnight shift handling
-- [ ] `config/generator.config.json`: seed, window, `starter` and `full` scale profiles (same generator, different numbers), labour policies, skill catalogue per team function, holiday list; every key validated at load
-- [ ] Generators, parents first: LaborPolicy → Skill → Team (+ Workforce Office) → Employee (managers, HR/ops partners, members, leads) → EmployeeSkill (bridge) → LeaveEntitlement → ShiftTemplate → HolidayCalendar → Shift (date × template) → CoverageRequirement (incl. mid-window revisions)
-- [ ] Realistic variation: uneven team sizes, skill rarity, full-time/part-time mix, hire dates and in-window joiners/leavers, expiring certifications, operating patterns, weekday/weekend/holiday staffing levels, some teams deliberately tight on supply (so gaps occur naturally)
-- [ ] Master data loads into the schema with zero constraint errors (`createDatabase` + `insertRows`)
-- [ ] Tests: ID formats, RNG determinism, profile scaling, every FK resolves, R-COV-02 pattern ↔ coverage rows, non-overlapping effective ranges
+- [x] [`src/lib/rng.js`](src/lib/rng.js): sfc32 PRNG seeded by a cyrb128 hash of `seed:stream`; `int`, `float`, `chance`, `pick`, `weighted`, `shuffle`, `normal`, `fork` (independent named streams per step)
+- [x] [`src/lib/ids.js`](src/lib/ids.js): formatter per ID kind, each checked against `ID_PATTERNS` (overflow throws); per-key counters for year-based IDs
+- [x] [`src/lib/dates.js`](src/lib/dates.js): dates, ISO weekday/week, `+05:30` timestamps, minute arithmetic across midnight, compact timestamps for `ATT-` IDs; [`allocate.js`](src/lib/allocate.js) (largest remainder), [`csv.js`](src/lib/csv.js) (RFC 4180, LF)
+- [x] [`config/generator.config.json`](config/generator.config.json) + [`src/generator/config.js`](src/generator/config.js): seed, window, `starter` / `full` profiles, labour policies, workforce mix, sites, operating patterns, 6 team functions with skill pools, Workforce Office, templates, holidays, coverage sizing, entitlements; strict validation (missing/unknown keys, shares sum to 1, enums, dates, certification validity > window)
+- [x] Generators in [`src/generator/master/`](src/generator/master/), parents first: LaborPolicy → Skill → Team + Employee ([`organisation.js`](src/generator/master/organisation.js)) → EmployeeSkill + LeaveEntitlement ([`workforce-details.js`](src/generator/master/workforce-details.js)) → ShiftTemplate → HolidayCalendar → Shift ([`reference-tables.js`](src/generator/master/reference-tables.js)) → CoverageRequirement ([`coverage.js`](src/generator/master/coverage.js))
+- [x] Realistic variation (full profile): team sizes 10–33 by pattern (24×7 avg 26, extended 20, business ≈ 12); 39 × 24×7, 33 × extended-hours, 27 × business-hours operational teams + the Workforce Office; 15% part-time members; 44 joiners and 39 leavers inside the window; 1–4 skills per person; 32 certifications lapse mid-window; 5 teams revise demand on 2026-02-16 (17 rows); 16 of 99 teams have demand ≥ 95% of contracted supply
+- [x] Coverage demand sized from each team's real supply × demand ratio; revisions recompute headcounts with the same formula and are dropped if they exceed the team's maximum-hours capacity
+- [x] [`src/cli/generate.js`](src/cli/generate.js) (`npm run generate -- --profile <name>`): generates, loads every row into the schema (columns checked against the table), checks FKs, then writes `data/<profile>/csv/`
+- [x] Tests — 61 new ([`lib.test.js`](test/lib.test.js), [`config.test.js`](test/config.test.js), [`master-data.test.js`](test/master-data.test.js)): RNG determinism/independence/ranges/weights; ISO weeks incl. year boundaries; timestamps across midnight; ID formats + overflow; allocation; CSV quoting; config rejections; for both profiles: brief volumes, FK-clean load, identical regeneration, seed sensitivity, consecutive IDs, one manager per team, partners only in the Workforce Office, policy ↔ employment type, skill validity + expiry formula, R-COV-03 day types, R-COV-02 patterns, non-overlapping effective ranges, required skills held, demand ≤ max capacity; CLI output + error exit
 
-Exit criteria: `npm run generate -- --profile starter` writes master tables; tests pass.
+Verified 2026-10-30: `npm test` 86/86 pass; lint and format clean; `generate` for both profiles succeeds (full ≈ 0.3 s); two independent runs of both profiles produce byte-identical CSVs (20/20 SHA-256 equal).
+Fixed during the phase: the first revision rule pushed one team's demand to 133% of its maximum capacity; caught by the capacity test and replaced by the recompute-and-cap rule above.
 Suggested commit: `feat(generator): seeded master data for teams, skills, employees, shifts, holidays, coverage`
 
 ### Phase 3 — Transactions & events
@@ -196,10 +198,10 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | B-04 | Measurable outputs | 4, 6 | `metrics.json`, `validation_summary` |
 | B-05 | Medium complexity: multiple related entities, conditional rules, ≥1 exception path, meaningful evaluation metrics | 1, 3, 6 | ✅ design: 21 tables, 42 conditional rules, exception paths (rejections, expiry, gaps, backfill), metrics M-01…M-09 · build Phases 3–6 |
 | B-06 | Actors: employee, manager, HR partner, IT/ops partner, system administrator | 1, 9 | ✅ actor matrix in business-rules §1 (incl. Workforce Office for HR/ops partners) · dashboard views Phase 9 |
-| W-01 | Master data first: Employee, Team, Skill, ShiftTemplate, ShiftAssignment | 2, 3 | generation order in code + README |
-| W-02 | Dependent records use valid parent IDs | 2–3, 6 | FK checks |
-| W-03 | Teams, skills, shift templates | 2 | master tables |
-| W-04 | Minimum staffing per shift and skill | 2 | CoverageRequirement |
+| W-01 | Master data first: Employee, Team, Skill, ShiftTemplate, ShiftAssignment | 2, 3 | ✅ master tables generated parents first (`src/generator/master/index.js`) · ShiftAssignment roster in Phase 3 |
+| W-02 | Dependent records use valid parent IDs | 2–3, 6 | ✅ every master row loaded into the schema with FKs checked (generate CLI + tests) · transactions Phase 3, validator Phase 6 |
+| W-03 | Teams, skills, shift templates | 2 | ✅ 100 teams, 30 skills, 4 templates (full profile) |
+| W-04 | Minimum staffing per shift and skill | 2 | ✅ 1,490 coverage requirements (team × template × skill × day type, effective-dated) |
 | W-05 | Leave requests and approval outcomes | 3 | LeaveRequest + events |
 | W-06 | Attendance events | 3 | AttendanceEvent |
 | W-07 | Assign shifts | 3 | ShiftAssignment |
@@ -214,14 +216,14 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | E-05 | Event history for state changes | 1, 3 | ✅ design: 3 event tables · populated Phase 3 |
 | E-06 | Validate all joins | 6 | FK report |
 | E-07 | Anomalies keep an issue_type / ground-truth label; unrelated rows untouched | 5 | ground_truth + injection test |
-| N-01 | IDs: `EMP-000001`, `SHIFT-2026-01-01-A`, `LVE-2026-000001`, `ATT-<employee-id>-<timestamp>`, `SWP-2026-000001` | 2 | ✅ formats defined + enforced in schema and `ID_PATTERNS` · formatters Phase 2 |
-| N-02 | Zero-padded counters, immutable IDs, identical across files | 2, 7 | ID tests, FK checks across CSV/JSON/SQL |
+| N-01 | IDs: `EMP-000001`, `SHIFT-2026-01-01-A`, `LVE-2026-000001`, `ATT-<employee-id>-<timestamp>`, `SWP-2026-000001` | 2 | ✅ formatters in `src/lib/ids.js`, checked against `ID_PATTERNS`; EMP / SHIFT generated, LVE / ATT / SWP formatters tested · generated in Phase 3 |
+| N-02 | Zero-padded counters, immutable IDs, identical across files | 2, 7 | ✅ zero-padded, consecutive, identical on regeneration; same IDs in CSV and DB · JSON/SQL in Phase 7 |
 | S-01 | Step 1 data dictionary: type, required/optional, allowed values, units, uniqueness, validation rule | 1 | ✅ data-dictionary.md (all 21 tables) |
-| S-02 | Step 2 parents before children/events | 2, 3 | generator order |
-| S-03 | Step 3 deterministic IDs and naming | 2 | ids.js |
-| S-04 | Step 4 volume: 2,000 employees, 100 teams, 90 days of shifts, 5,000 leave requests | 2, 3 | manifest row counts (full profile) |
-| S-05 | Step 4 public holidays, absences, overtime caps, skill-specific staffing | 2, 3 | HolidayCalendar, absences, caps, CoverageRequirement |
-| S-06 | Step 4 fixed seed 20261022; same generator for starter and full | 2 | config + CLI |
+| S-02 | Step 2 parents before children/events | 2, 3 | ✅ load order = generation order; deferred FKs only for team ↔ manager / HR partner · children Phase 3 |
+| S-03 | Step 3 deterministic IDs and naming | 2 | ✅ `src/lib/ids.js` |
+| S-04 | Step 4 volume: 2,000 employees, 100 teams, 90 days of shifts, 5,000 leave requests | 2, 3 | ✅ 2,000 employees, 100 teams, 90 days (360 shifts) · 5,000 leave requests in Phase 3 |
+| S-05 | Step 4 public holidays, absences, overtime caps, skill-specific staffing | 2, 3 | ✅ 5 holidays, overtime caps (`labor_policy`), skill-specific staffing · absences in Phase 3 |
+| S-06 | Step 4 fixed seed 20261022; same generator for starter and full | 2 | ✅ seed `20261022`; `starter` and `full` profiles through one generator; byte-identical reruns |
 | S-07 | Step 5 valid baseline first, then labelled edge cases | 3, 5 | pipeline order, baseline test |
 | S-08 | Step 6 derived values computed from source records | 4 | derive/ + reconciliation checks |
 | S-09 | Step 7 separate ground_truth.csv/json, no leakage | 5 | ground_truth/, leakage test |
@@ -237,15 +239,15 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | A-02 | Working-hour constraints hold | 3, 6 | hour/rest checks |
 | A-03 | Attendance reconciles with schedules | 4, 6 | reconciliation report |
 | A-04 | Swap history preserved | 3, 6 | swap event chain check |
-| V-01 | Realistic distributions and meaningful variation | 2, 3 | distribution stats in metrics |
+| V-01 | Realistic distributions and meaningful variation | 2, 3 | ✅ master data: uneven team sizes, FT/PT mix, joiners/leavers, lapsing certifications, demand tiers, revisions (Phase 2 checklist) · transactions Phase 3 |
 | V-02 | Consistent IDs and valid joins | 6 | FK report |
 | V-03 | Dependency/lifecycle consistency across entities | 6 | lifecycle checks |
 | V-04 | Correct derived values and reconciliation | 4, 6 | reconciliation checks |
 | V-05 | Normal, boundary, failure and exception coverage | 5, 6 | ground truth incl. boundary labels |
 | V-06 | Separate ground truth | 5 | ground_truth/ |
 | V-07 | Fixed-seed reproducibility, documentation, lawful provenance | 7, 10 | reproducibility.md, README, manifest provenance |
-| P-01 | External data optional; if used record URL, version, retrieval date, licence, attribution, transformations, discarded fields | 2, 7 | manifest provenance + README |
-| P-02 | No confidential/personal data; synthetic if licensing unclear | all | synthetic names, no real people |
+| P-01 | External data optional; if used record URL, version, retrieval date, licence, attribution, transformations, discarded fields | 2, 7 | ✅ no external data used; holiday calendar synthetic and labelled (README §10, §14) |
+| P-02 | No confidential/personal data; synthetic if licensing unclear | all | ✅ synthetic names from common-name lists; no real people |
 
 ### 5.2 FAQ PDF
 
@@ -299,23 +301,23 @@ YottaFlex.ai/  (repo: YottaShift)
 ├── README.md               # how to install, run, verify; decisions; limitations
 ├── tracking.md             # this file
 ├── package.json            # root package (generator, validator, API); client workspace added in Phase 9
-├── config/                 # generator.config.json — seed + starter/full profiles (Phase 2)
+├── config/                 # ✅ generator.config.json — seed, starter/full profiles, workforce, skills, coverage
 ├── sql/schema.sql          # ✅ 21 STRICT tables
 ├── docs/                   # ✅ data-dictionary.md, erd.md, business-rules.md; design-notes.md (Phase 10)
 ├── src/
-│   ├── lib/                # rng, ids, dates, csv, hashing (Phase 2)
+│   ├── lib/                # ✅ rng, ids, dates, csv, allocate (hashing in Phase 7)
 │   ├── domain/             # ✅ constants.js (enums, transitions, ID patterns), rules.js (rule catalogue, policy)
-│   ├── generator/          # master data → transactions → events → anomalies
+│   ├── generator/          # ✅ config.js, master/ (10 master tables), reference/names.js · transactions Phase 3
 │   ├── scheduler/          # fair, constraint-aware shift assignment
 │   ├── derive/             # overtime, balances, coverage gaps, fairness
 │   ├── validation/         # integrity checks, detectors, ground-truth evaluation
-│   ├── export/             # CSV, JSON, SQL seed, SQLite DB, manifest
+│   ├── export/             # ✅ csv-export.js · JSON, SQL seed, SQLite DB, manifest in Phase 7
 │   ├── db/                 # ✅ database.js (open DB with schema, insert rows)
 │   ├── api/                # Express app
-│   └── cli/                # generate / validate / reproduce entry points
+│   └── cli/                # ✅ generate.js · validate / reproduce later
 ├── client/                 # React + Vite dashboard (workspace)
-├── test/                   # ✅ schema.test.js, helpers/schema-fixture.js
-├── data/                   # generated outputs per profile (starter, full)
+├── test/                   # ✅ schema, lib, config, master-data tests; helpers/schema-fixture.js
+├── data/                   # ✅ starter/csv committed as sample; full/ git-ignored
 └── ai-disclosure/          # prompt history and AI-usage notes
 ```
 
@@ -339,6 +341,12 @@ YottaFlex.ai/  (repo: YottaShift)
 | D-14 | 2026-10-30 | Leave measured in calendar days, inclusive | Shift workers have no fixed weekend | Working days per employee pattern |
 | D-15 | 2026-10-30 | Attendance outcome is derived (`attendance_reconciliation`), not an assignment status | Keeps plan vs actual separate so they can be reconciled (acceptance criterion) | `COMPLETED` / `NO_SHOW` assignment statuses |
 | D-16 | 2026-10-30 | Enum, rule and transition lists are code constants with tests that keep them equal to schema and docs | One source of truth; drift breaks the build | Hand-kept copies |
+| D-17 | 2026-10-30 | sfc32 PRNG with one named stream per generation step (`rng.fork`) | Adding draws to one step never changes another step's data; tiny, dependency-free, deterministic across platforms | One shared stream (fragile); Faker (D-04) |
+| D-18 | 2026-10-30 | Coverage demand sized from each team's real weekly supply × a demand ratio drawn from tiers (80% coverable, 15% near the limit, 5% short) | Gaps then arise naturally from data, and the scheduler is tested on both slack and tight teams | Random headcounts (could be impossible or trivially easy) |
+| D-19 | 2026-10-30 | Mid-window revisions rescale team demand and recompute all headcounts; dropped if beyond maximum-hours capacity | Coherent with the base formula; the first per-row ±1 rule produced impossible demand (caught by a test) | Per-row multiplier with ±1 nudge |
+| D-20 | 2026-10-30 | Generator loads every row into the real schema before writing files, and checks each row has exactly the table's columns | The schema is the contract; no broken file can be written | Validate only in Phase 6 |
+| D-21 | 2026-10-30 | Strict config validation (all keys required, unknown keys rejected, shares sum to 1) | A typo cannot silently change the dataset | Defaults for missing keys |
+| D-22 | 2026-10-30 | Workforce Office sized from team count (1 HR partner per 12 teams, 1 ops partner per 20) and taken out of the 2,000 before sizing operational teams | Keeps the brief's exact 2,000 employees / 100 teams | Extra headcount outside the 2,000 |
 
 ## 9. Open questions & assumptions
 
@@ -347,7 +355,7 @@ YottaFlex.ai/  (repo: YottaShift)
 | Q-01 | Dedicated repo needed (folder sat inside the home-directory repo). | ✅ Resolved — candidate ran `git init`, remote `arpitad791/YottaShift` |
 | Q-02 | Prompt history: FAQ #6 asks for **all** prompts submitted to every AI tool. The final content of `ai-disclosure/prompt-history.md` is the candidate's call. | Waiting on user |
 | Q-03 | 72-hour window start/deadline not yet recorded in §1. | Waiting on user |
-| Q-04 | Whether the full-profile output is committed or regenerated on demand depends on its size (decide in Phase 7). | Open |
+| Q-04 | Whether the full-profile output is committed or regenerated on demand depends on its size (decide in Phase 7). For now `data/full/` is git-ignored and `data/starter/` is committed as the sample. | Open |
 | A-01 | ShiftAssignment is treated as the published master roster; later changes are events. | Assumed |
 | A-02 | A `shift` table (date × template) makes `SHIFT-2026-01-01-A` a real key (D-10). | Assumed |
 | A-03 | Each employee belongs to one team for the whole window; team transfers are out of scope. | Assumed |
@@ -358,6 +366,9 @@ YottaFlex.ai/  (repo: YottaShift)
 | A-08 | One `employee_skill` row per employee × skill; certification renewals are out of scope (a lapsed certification just expires). | Assumed |
 | A-09 | Cancelling approved leave does not restore assignments already cancelled for it. | Assumed |
 | A-10 | Holiday calendar is a synthetic company calendar modelled on common Indian holidays, applied to all sites. | Assumed |
+| A-11 | Leave entitlements are configured per 90 days and scaled to the window length and the days each person is employed in it; a late joiner can have 0 annual days. | Assumed |
+| A-12 | Part-time contracts are only given to members (not leads or managers); about 15% of schedulable staff. | Assumed |
+| A-13 | Each employee covers exactly one skill per shift; a requirement for skill k counts only assignments made for k. | Assumed |
 
 ## 10. Change log
 
@@ -365,3 +376,4 @@ YottaFlex.ai/  (repo: YottaShift)
 | --- | --- | --- |
 | 2026-10-30 | 0 | Read brief + FAQ + submission guidelines; created phased plan, traceability matrix, folder structure, tooling, README skeleton, AI-disclosure folder |
 | 2026-10-30 | 1 | Named the project YottaShift. Wrote data dictionary, ERD, business rules (42 rules, lifecycles, anomalies, metrics), `sql/schema.sql` (21 STRICT tables), domain constants and rule catalogue, DB helper and 25 schema tests. Added the Workforce Office team and HR/ops partner links for traceability. Decisions D-07 … D-16, assumptions A-03 … A-10 |
+| 2026-10-30 | 2 | Seeded RNG, date/ID/CSV/allocation helpers; strict generator config with starter and full profiles; master-data generators for all 10 master tables (Workforce Office, demand sized from supply, lapsing certifications, revisions); `npm run generate`; 61 new tests (86 total). Fixed the coverage-revision rule after a capacity test failed. Decisions D-17 … D-22, assumptions A-11 … A-13 |

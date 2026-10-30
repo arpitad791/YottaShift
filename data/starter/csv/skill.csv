@@ -1,0 +1,31 @@
+skill_id,skill_name,skill_category,requires_certification,certification_validity_days
+SKL-001,Voice Support,TECHNICAL,0,
+SKL-002,Chat Support,TECHNICAL,0,
+SKL-003,Email Support,TECHNICAL,0,
+SKL-004,Hindi Language Support,LANGUAGE,0,
+SKL-005,Tamil Language Support,LANGUAGE,0,
+SKL-006,Billing Queries,OPERATIONAL,0,
+SKL-007,Picking and Packing,OPERATIONAL,0,
+SKL-008,Inventory Control,OPERATIONAL,0,
+SKL-009,Forklift Operation,SAFETY,1,365
+SKL-010,Hazmat Handling,SAFETY,1,730
+SKL-011,Dispatch Coordination,OPERATIONAL,0,
+SKL-012,Network Installation,TECHNICAL,0,
+SKL-013,HVAC Repair,TECHNICAL,1,730
+SKL-014,Electrical Work,SAFETY,1,365
+SKL-015,Light Vehicle Driving,OPERATIONAL,1,1095
+SKL-016,Access Control,OPERATIONAL,0,
+SKL-017,CCTV Monitoring,TECHNICAL,0,
+SKL-018,Patrol,OPERATIONAL,0,
+SKL-019,Fire Safety,SAFETY,1,365
+SKL-020,Network Monitoring,TECHNICAL,0,
+SKL-021,Incident Response,TECHNICAL,0,
+SKL-022,Linux Administration,TECHNICAL,0,
+SKL-023,Database Support,TECHNICAL,0,
+SKL-024,Housekeeping,OPERATIONAL,0,
+SKL-025,Plumbing,TECHNICAL,0,
+SKL-026,Electrical Maintenance,SAFETY,1,365
+SKL-027,HVAC Maintenance,TECHNICAL,0,
+SKL-028,Workforce Planning,LEADERSHIP,0,
+SKL-029,HR Advisory,LEADERSHIP,0,
+SKL-030,Attendance Operations,OPERATIONAL,0,
