@@ -16,7 +16,7 @@ traceability matrix and the change log at the end of every phase.
 | Build | Fully local, no paid or hosted services |
 | Stack | Node.js 24 (ESM) · Express 5 · React 19 + Vite · SQLite (built-in `node:sqlite`) · `node:test` · ESLint + Prettier |
 | Fixed seed | `20261022` |
-| Current phase | Phase 9 — done; next: Phase 10 |
+| Current phase | Phase 10 — done; remaining steps are the candidate's (Q-02, Q-03, G-03 notes, publish and send) |
 
 ## 2. Working agreement
 
@@ -43,7 +43,7 @@ traceability matrix and the change log at the end of every phase.
 | 7 | Export & reproducibility | CSV / JSON / SQL seed / SQLite DB, source manifest with checksums, two-run reproducibility proof | ✅ Done |
 | 8 | Express API | read endpoints for every entity with full histories; exception reviews (append-only, separate store); leave what-if on the real rule engine | ✅ Done |
 | 9 | React dashboard | manager / HR / ops views of coverage, exceptions, swaps, leave, metrics | ✅ Done |
-| 10 | Hardening, docs & submission | full-scale timing, clean-clone run, final README, design notes, AI disclosure, submission checklist | ⏳ Next |
+| 10 | Hardening, docs & submission | full-scale timing, clean-clone run, final README, design notes, AI disclosure, submission checklist | ✅ Done |
 
 Suggested order of priority if time runs short: Phases 1–7 are the graded core (data generation,
 validation, ground truth, reproducibility). Phases 8–9 make decisions and exceptions visible to the
@@ -201,15 +201,16 @@ Suggested commit: `feat(client): React dashboard for coverage, exceptions, peopl
 
 ### Phase 10 — Hardening, docs & submission
 
-- [ ] Full-scale run timed; one reasonable optimisation recorded with before/after numbers (first one already measured in Phase 3: D-29, 16.7 s → 10.5 s)
-- [ ] Fresh clone → `npm install` → documented commands work end to end
-- [ ] README final: problem, assumptions, architecture, setup, run, verify, outputs, decisions, trade-offs, testing approach, limitations, next steps, deviations
-- [ ] `docs/design-notes.md`: key decisions and trade-offs
-- [ ] `ai-disclosure/`: prompt history, where AI accelerated, where relied on heavily, what was personally reviewed / changed / validated
-- [ ] Secret/PII scan of the repo; licences of dependencies listed
-- [ ] Submission checklist (§5.3) all green; repo public; link sent from the recruitment email
+- [x] Full-scale run timed on a clean clone (table in [design notes §4](docs/design-notes.md#4-performance)): generate 25.4 s, validate 35.1 s, reproduce 47.7 s, tests 40.3 s; two measured optimisations recorded (D-29 16.7 s → 10.5 s; D-60 758 ms → 11–24 ms)
+- [x] Fresh clone → `npm ci` → every documented command, cloned the way a Windows reviewer would (`core.autocrlf=true`): format, lint, validate (starter and full: PASS), generate both profiles (**byte-identical to the committed data**), reproduce (IDENTICAL, 0 differences with the published manifest), 223/223 tests, client build, API answering
+- [x] **Found and fixed by that run:** with Git's default `autocrlf=true` a clone checked out text files with CRLF, so `format:check` failed on 86 files and the SQLite file's checksum changed (SQLite stores `CREATE TABLE` text verbatim). Fixed with `.gitattributes` (LF everywhere, data never converted) and CRLF normalisation in `readSchema()` (D-61)
+- [x] README final: quick start, status, dependency licence table, §11 key decisions and the deviation, §12 testing approach, §13 limitations and next steps, measured timings
+- [x] [`docs/design-notes.md`](docs/design-notes.md): architecture, the ideas behind it, trade-offs and deviations, performance, how it is known to work, 15-minute walkthrough
+- [x] `ai-disclosure/`: tool, split of work, where AI accelerated and was relied on, how output was checked (with mistakes caught), limits of the record; prompt history with all 17 prompts verbatim from the local transcripts (Q-02). "What I personally reviewed" is left for the candidate
+- [x] Scan of all 161 tracked files: no keys, tokens, private keys, emails, phone numbers or local paths; licences listed (all direct deps MIT; sfc32 / cyrb128 attributed)
+- [ ] **Candidate:** complete "What I personally reviewed" in `ai-disclosure/README.md`; decide Q-02; fill the window in §1 (Q-03); make the repo public; send the link from the recruitment email
 
-Suggested commit: `docs: final README, design notes and AI disclosure`
+Suggested commit: `docs: final README, design notes and AI disclosure; LF line endings for clean clones`
 
 ---
 
@@ -284,27 +285,27 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | ID | Point | Phase | How we meet it |
 | --- | --- | --- | --- |
 | F-01 | 72-hour window from send timestamp; early submission allowed; latest version at deadline is evaluated | all | §1 window row; keep repo editable until deadline |
-| F-02 | New dedicated public GitHub repo; link sent from the recruitment email | 10 | ✅ repo `arpitad791/YottaShift` created by the candidate · send link in Phase 10 |
-| F-03 | Repo holds code, prompt history, supporting artifacts in a clearly identifiable directory | 0, 10 | `ai-disclosure/`, `docs/` |
-| F-04 | Any AI tool allowed | — | disclosed in `ai-disclosure/` |
-| F-05 | Prompt history: all prompts to every AI tool; responses optional; disclose export limits | 10 | `ai-disclosure/prompt-history.md` (§9 Q-02) |
-| F-06 | Individual work; understand core logic, design choices, dependencies, limitations | all | design notes, walkthrough-ready README |
-| F-07 | Own stack; free/local services; avoid large or slow dependencies | 0 | D-01 … D-06 (two runtime deps planned: Express, React) |
-| F-08 | No hosted demo or test suite mandatory; clear setup/run steps and how core functionality was verified; environment needs and limitations | 10 | README "Verify" + "Limitations" |
-| F-09 | Reuse only standard deps / small snippets; follow licences, attribute | 10 | dependency licence table in README |
-| F-10 | Unclear requirements → reasonable assumptions; partial work OK if stated; explain deviations | all | §9 + README "Assumptions", "Deviations" |
-| F-11 | No secrets, credentials, personal/sensitive info, proprietary code | all | `.gitignore`, synthetic data, scan in Phase 10 |
+| F-02 | New dedicated public GitHub repo; link sent from the recruitment email | 10 | ✅ repo `arpitad791/YottaShift` created by the candidate · **candidate:** make it public and send the link from the recruitment email |
+| F-03 | Repo holds code, prompt history, supporting artifacts in a clearly identifiable directory | 0, 10 | ✅ `ai-disclosure/` (prompts, AI usage), `docs/` (dictionary, ERD, rules, design notes), `tracking.md` |
+| F-04 | Any AI tool allowed | — | ✅ Claude Code (Claude Opus 5.5) disclosed in `ai-disclosure/README.md` |
+| F-05 | Prompt history: all prompts to every AI tool; responses optional; disclose export limits | 10 | ✅ `ai-disclosure/prompt-history.md`: all 17 prompts verbatim from the local transcripts, export limits disclosed (Q-02) |
+| F-06 | Individual work; understand core logic, design choices, dependencies, limitations | all | ✅ `docs/design-notes.md` (architecture, reasoning, trade-offs, walkthrough); decision log §8 |
+| F-07 | Own stack; free/local services; avoid large or slow dependencies | 0 | ✅ Node standard library + Express and React (MIT, exact pins); everything local |
+| F-08 | No hosted demo or test suite mandatory; clear setup/run steps and how core functionality was verified; environment needs and limitations | 10 | ✅ README Quick start, §5–7 (setup, run, verify), §13 limitations; clean-clone run (Phase 10) |
+| F-09 | Reuse only standard deps / small snippets; follow licences, attribute | 10 | ✅ README §3 dependency licence table; sfc32 / cyrb128 attributed in `src/lib/rng.js` |
+| F-10 | Unclear requirements → reasonable assumptions; partial work OK if stated; explain deviations | all | ✅ §9 + README §10 assumptions; deviation D-51 in README §11 and design notes §3 |
+| F-11 | No secrets, credentials, personal/sensitive info, proprietary code | all | ✅ scan of all tracked files (Phase 10): no keys, tokens, emails, phone numbers or local paths; synthetic data only |
 
 ### 5.3 Submission Guidelines PDF (= submission checklist)
 
 | ID | Point | Phase | How we meet it |
 | --- | --- | --- | --- |
-| G-01 | Make it run: working code + steps to install, configure, run, verify | 10 | README Quick start / Verify, clean-clone test |
-| G-02 | Show your work: public repo, meaningful commits, supporting context | all | one commit per phase (§4) |
-| G-03 | Use LLMs transparently: prompt history; where AI accelerated, where relied heavily, what you reviewed/changed/validated | 10 | `ai-disclosure/README.md` |
-| G-04 | Make reasoning visible: problem, assumptions, decisions, trade-offs, testing approach, limitations, how you know it works | 1, 10 | README + `docs/design-notes.md` |
-| G-05 | Artifact timestamps verify the window | all | commit inside the window |
-| G-06 | Be ready to walk through the solution | 10 | walkthrough notes in design-notes |
+| G-01 | Make it run: working code + steps to install, configure, run, verify | 10 | ✅ README Quick start and §5–7; clean clone (Windows, `autocrlf=true`) runs every command |
+| G-02 | Show your work: public repo, meaningful commits, supporting context | all | ✅ one commit per phase (11 commits); tracking.md change log |
+| G-03 | Use LLMs transparently: prompt history; where AI accelerated, where relied heavily, what you reviewed/changed/validated | 10 | ✅ `ai-disclosure/README.md` + `prompt-history.md` · **candidate:** complete "What I personally reviewed" |
+| G-04 | Make reasoning visible: problem, assumptions, decisions, trade-offs, testing approach, limitations, how you know it works | 1, 10 | ✅ README §1, §10–13 + `docs/design-notes.md` |
+| G-05 | Artifact timestamps verify the window | all | Commits dated 2026-10-30 · **candidate:** confirm against the window (Q-03) |
+| G-06 | Be ready to walk through the solution | 10 | ✅ walkthrough in `docs/design-notes.md` §6 |
 
 ---
 
@@ -333,7 +334,7 @@ YottaFlex.ai/  (repo: YottaShift)
 ├── package.json            # root package (generator, validator, API) + `client` workspace
 ├── config/                 # ✅ generator.config.json — seed, starter/full profiles, workforce, skills, coverage
 ├── sql/schema.sql          # ✅ 21 STRICT tables
-├── docs/                   # ✅ data-dictionary.md, erd.md, business-rules.md; design-notes.md (Phase 10)
+├── docs/                   # ✅ data-dictionary.md, erd.md, business-rules.md, design-notes.md
 ├── src/
 │   ├── lib/                # ✅ rng, ids, dates, csv, allocate, heap (hashing in Phase 7)
 │   ├── domain/             # ✅ constants.js (enums, transitions, ID patterns), rules.js (rule catalogue, policy)
@@ -349,7 +350,8 @@ YottaFlex.ai/  (repo: YottaShift)
 ├── .claude/launch.json     # dev-server definitions (API + Vite) used for the browser check
 ├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive, anomalies, validation, export, api tests
 ├── data/                   # ✅ <profile>/{csv,json,sql,sqlite,ground_truth,reports}, manifest.json; starter committed; full: manifest, reports, ground truth only
-└── ai-disclosure/          # prompt history and AI-usage notes
+├── ai-disclosure/          # ✅ README.md (AI usage), prompt-history.md
+└── .gitattributes          # ✅ LF line endings; data files never converted
 ```
 
 ## 8. Decision log
@@ -416,13 +418,14 @@ YottaFlex.ai/  (repo: YottaShift)
 | D-58 | 2026-10-30 | Client imports enum lists from `src/domain/constants.js` (Vite `fs.allow`) | One source of truth for statuses and types shared by schema, generator, API and UI | Copying the lists into the client |
 | D-59 | 2026-10-30 | Vite dev proxy `/api` → port 3001 | Same origin in the browser, so the API needs no CORS setup | CORS middleware in Express |
 | D-60 | 2026-10-30 | `/teams` gap count from one grouped join instead of a per-team subquery | `coverage_status` is keyed by shift first, so each team's count scanned 46k rows: 758 ms → 14–24 ms, same numbers | Extra index on `coverage_status (team_id)` |
+| D-61 | 2026-10-30 | `.gitattributes` forces LF (data never converted) and `readSchema()` normalises CRLF | A Windows clone with Git's default `autocrlf=true` failed the format check and produced a different SQLite checksum; both guards keep a clone byte-identical | Documenting `git config core.autocrlf false` for reviewers |
 
 ## 9. Open questions & assumptions
 
 | ID | Item | Status |
 | --- | --- | --- |
 | Q-01 | Dedicated repo needed (folder sat inside the home-directory repo). | ✅ Resolved — candidate ran `git init`, remote `arpitad791/YottaShift` |
-| Q-02 | Prompt history: FAQ #6 asks for **all** prompts submitted to every AI tool. The final content of `ai-disclosure/prompt-history.md` is the candidate's call. | Waiting on user |
+| Q-02 | Prompt history: FAQ #6 asks for **all** prompts submitted to every AI tool; the kickoff asked for showcase-able prompts only. | Phase 10: the complete record is written (FAQ #6); keeping it complete is the candidate's decision |
 | Q-03 | 72-hour window start/deadline not yet recorded in §1. | Waiting on user |
 | Q-04 | Commit the full-profile output? | ✅ Resolved (D-49): starter committed in full; full regenerated on demand, its manifest / reports / ground truth committed |
 | A-01 | ShiftAssignment is treated as the published master roster; later changes are events. | Assumed |
@@ -459,3 +462,4 @@ YottaFlex.ai/  (repo: YottaShift)
 | 2026-10-30 | 7 | JSON, SQL seed and SQLite exports; manifest with checksums, provenance and environment; `npm run reproduce` (two runs + published manifest); I-13 format agreement in validation; `.gitignore` keeps full manifest / reports / ground truth; 9 new tests (201 total). Both profiles: 48 / 48 files byte-identical. Decisions D-46 … D-50, Q-04 resolved |
 | 2026-10-30 | 8 | Express API (`npm run api`): read endpoints for every entity with histories, coverage, exceptions with ground-truth match, append-only exception reviews in a separate store, leave what-if on the real rule engine; validation and one error shape; 21 new tests (222 total). Leave/swap approval endpoints dropped by design (D-51). Decisions D-51 … D-55 |
 | 2026-10-30 | 9 | React dashboard (`npm run client`): Overview, Coverage, Exceptions (with reviews), People, Assignment, Leave & swaps (with what-if) and Validation views; hand-built SVG charts on a validated palette; hash routes; `GET /reproducibility`, manager / HR partner names on team detail, faster `/teams`; 1 new test (223 total); checked in the browser at desktop and 375 px, light and dark. Decisions D-56 … D-60 |
+| 2026-10-30 | 10 | Clean-clone run (Windows, `autocrlf=true`) found CRLF checkouts breaking the format check and the SQLite checksum: fixed with `.gitattributes` and schema normalisation (D-61), then every command passed and regenerated data matched the committed files byte for byte. Timed the full profile; secret / PII scan; licence table; `docs/design-notes.md`; README quick start and §11–13; AI disclosure and full prompt history; FAQ / guideline checklist updated |

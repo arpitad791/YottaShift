@@ -7,12 +7,27 @@ workflow that combine **leave requests, shift coverage, skills and labour constr
 and feasible schedules, expose every key decision and exception, keep full history, and produce
 measurable outputs.
 
-> **Status:** Phases 0–9 complete: setup, domain design and schema, master data, the
-> transaction workflow (leave, scheduling, swaps, attendance), derived values with metrics,
-> labelled anomalies with a separate ground truth, file-level validation with evaluation
-> against that ground truth, CSV / JSON / SQL / SQLite exports with a checksummed manifest and a
-> two-run reproducibility check, a local Express API and a React dashboard. Phase-by-phase progress lives in
-> [tracking.md](tracking.md). Sections marked _(Phase N)_ are filled in as that phase lands.
+**Quick start** (Node.js 24+; each command from the repository root):
+
+```bash
+npm install
+npm run generate -- --profile full
+npm run validate -- --profile full
+npm run reproduce -- --profile full
+npm test
+```
+
+Then `npm run api -- --profile full` and, in a second terminal, `npm run client` for the
+dashboard at `http://localhost:5173`. The small `starter` profile is already committed, so
+`--profile starter` works without generating anything.
+
+> **Status:** complete (Phases 0–10): domain design and schema, master data, the transaction
+> workflow (leave, scheduling, swaps, attendance), derived values with metrics, labelled
+> anomalies with a separate ground truth, file-level validation graded against that ground truth,
+> CSV / JSON / SQL / SQLite exports with a checksummed manifest, a two-run reproducibility check,
+> a local Express API and a React dashboard. How it was built, phase by phase:
+> [tracking.md](tracking.md). Design reasoning and a walkthrough:
+> [docs/design-notes.md](docs/design-notes.md).
 
 ---
 
@@ -57,6 +72,27 @@ truth, validation, and fixed-seed reproducibility.
 | Quality | ESLint 10, Prettier 3 | Lint + consistent formatting |
 
 Full reasoning and rejected alternatives: [tracking.md §8](tracking.md#8-decision-log).
+
+### Dependencies and licences
+
+All direct dependencies are pinned to exact versions and are MIT-licensed. The generator,
+validator and exports use only Node's standard library (`node:sqlite`, `node:crypto`,
+`node:test`). Two small public-domain algorithms are re-implemented in
+[src/lib/rng.js](src/lib/rng.js) and attributed there: the sfc32 generator (Chris
+Doty-Humphrey, from the PractRand suite) and the cyrb128 string hash (bryc). No data or other
+code is taken from elsewhere.
+
+| Package | Version | Licence | Used for |
+| --- | --- | --- | --- |
+| express | 5.2.1 | MIT | API (runtime) |
+| react, react-dom | 19.3.1 | MIT | Dashboard (runtime) |
+| vite, @vitejs/plugin-react | 8.3.4, 6.1.2 | MIT | Dashboard build and dev server |
+| eslint, @eslint/js, globals | 10.13.0, 10.0.1, 17.13.0 | MIT | Linting |
+| prettier | 3.9.10 | MIT | Formatting |
+
+Transitive packages (from `package-lock.json`): MIT, ISC, Apache-2.0, BSD-2/3-Clause and
+BlueOak-1.0.0, plus MPL-2.0 for `lightningcss`, a build-time CSS tool inside Vite that is not
+shipped in the app.
 
 ## 4. Repository layout
 
@@ -139,7 +175,7 @@ Full profile, as published (including the labelled anomalies of §9):
 | shift templates / holidays / shifts | 4 / 5 / 360 | attendance events | 184,575 | | |
 | coverage requirements | 1,490 | | | | |
 
-A full run takes about 21 s and writes 391 MB (CSV 60 MB, JSON 152 MB, SQL seed 77 MB,
+A full run takes about 20–25 s and writes 391 MB (CSV 60 MB, JSON 152 MB, SQL seed 77 MB,
 SQLite 103 MB). The starter profile takes about 1 s.
 
 Then validate what was written and prove it is reproducible (see [§7](#7-verify)):
@@ -303,7 +339,7 @@ npm run validate -- --profile full
 
 The validator reads **only the exported files** (`data/<profile>/csv/` and `ground_truth/`),
 writes `data/<profile>/reports/validation_summary.json` and `.md`, prints a summary and exits
-with code 1 if anything is wrong. Full profile: about 29 s, **PASS**.
+with code 1 if anything is wrong. Full profile: about 30–35 s, **PASS**.
 
 | Section | What it proves | Full profile |
 | --- | --- | --- |
@@ -484,24 +520,73 @@ is flagged, and no finding falls outside the labels.
 
 Full list: [tracking.md §9](tracking.md#9-open-questions--assumptions).
 
-## 11. Key decisions & trade-offs _(Phase 10)_
+## 11. Key decisions & trade-offs
 
-## 12. Testing approach _(Phase 10)_
+The reasoning, the architecture diagram, the trade-offs table and a walkthrough are in
+[docs/design-notes.md](docs/design-notes.md); every decision with its rejected alternatives is
+in [tracking.md §8](tracking.md#8-decision-log). In short:
 
-## 13. Known limitations & next steps _(Phase 10)_
+- **Outcomes come from numbered rules; randomness only drives behaviour.** Every decision is
+  stored with its rule ID, so it can be explained and replayed.
+- **One chronological timeline** for leave, roster publication, backfills, swaps and attendance,
+  so no decision can see the future.
+- **One implementation of each policy:** the same pure leave engine decides, replays and powers
+  the what-if; derived values are shared by the generator, validator and detectors.
+- **The schema enforces structure, the validator enforces business rules**, so labelled
+  anomalies stay loadable and must be detected.
+- **Clean baseline first, then one-rule anomalies on separate employees**, so precision and recall
+  measure the detectors rather than noise.
+- **No timestamps in outputs** and named random streams, so two runs are byte-identical.
+- **SQLite instead of MongoDB**, because the brief asks for keys, joins and a SQL seed.
+- **Deviation:** the API does not approve or reject requests (the dataset is a closed, checksummed
+  snapshot); managers act through exception reviews and the leave what-if instead.
 
-Recorded so far:
+## 12. Testing approach
+
+Four layers, from narrow to wide:
+
+1. **Rule-level unit tests on hand-built fixtures.** Each leave, scheduling and swap rule, and
+   every derived number, is checked against values worked out by hand (§7 lists them).
+2. **Whole-dataset property tests on both profiles.** Exact volumes from the brief, FK-clean
+   loads, zero business-rule violations in the baseline, every anomaly detected and no boundary
+   flagged, byte-identical regeneration.
+3. **Negative tests.** Every validation check (I-01 … I-13, D-01, D-02) and every detector is run on
+   a copy of the data broken on purpose and must fail; the CLI must exit 1.
+4. **End-to-end checks on the delivered files.** `npm run validate` (reads only the exports),
+   `npm run reproduce` (two runs and the committed manifest), a clean clone running every
+   documented command, and the dashboard checked in a browser.
+
+## 13. Known limitations & next steps
+
+Limitations:
 
 - Injected assignments take the next free `ASG-` numbers, so their IDs sit after the creation
   order of their neighbours. The detectors never use ID order, but a model that did could tell
   injected rows apart. Renumbering would change baseline IDs, which must stay immutable.
 - The starter profile is too small to place a swap exactly at the notice limit; the full profile
   has all reachable boundary types.
-- Full-scale data files are not in git (391 MB); they are regenerated in about 21 s and checked
+- Full-scale data files are not in git (391 MB); they are regenerated in about 25 s and checked
   against the committed manifest. The SQLite file's checksum only matches on the same SQLite
   version (recorded in the manifest).
 - The dashboard has no sign-in: the reviewer is picked from the people the API allows for that
   finding. That suits a local demo; a real deployment would take the reviewer from the session.
+- Simplifications by design: one time zone, leave counted in calendar days, one team per
+  employee for the whole window, no certification renewals, paid breaks inside the 8-hour shift
+  (tracking.md §9 lists every assumption).
+- Swap decisions are checked against static rules in the validator, not fully replayed against
+  the roster as it stood at decision time (D-43).
+- The exact-11-hour rest boundary cannot occur with the configured shift templates; a unit test
+  covers it instead.
+
+Next steps, in the order I would take them:
+
+1. Make requests actionable on a copy of the dataset (approve, reject, swap) with the same rule
+   engine, keeping the published snapshot untouched.
+2. Full swap replay in the validator, matching what the leave replay already does.
+3. Sign-in with roles, so the reviewer comes from the session rather than a list.
+4. Per-site time zones and working-day leave counting as configurable policies.
+5. A scheduling-quality comparison: the fair scheduler against a simple greedy baseline on the
+   same demand, measured with M-01 and M-08.
 
 ## 14. Data provenance
 

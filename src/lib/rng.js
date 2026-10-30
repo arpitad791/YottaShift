@@ -1,5 +1,6 @@
 // Seeded pseudo-random numbers. sfc32 is fast, has a 128-bit state and passes PractRand;
 // its state is derived from "<seed>:<stream label>" with the cyrb128 string hash.
+// Both are public-domain algorithms: sfc32 by Chris Doty-Humphrey (PractRand), cyrb128 by bryc.
 //
 // Each generator step forks its own named stream, so adding draws to one step never
 // shifts the numbers another step receives. Same seed + same label = same sequence.

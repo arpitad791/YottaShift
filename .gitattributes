@@ -1,0 +1,7 @@
+# LF on every checkout, whatever core.autocrlf says: Prettier enforces LF, and a CRLF
+# sql/schema.sql would change the bytes of the generated SQLite file.
+* text=auto eol=lf
+
+# Generated datasets are checked byte for byte against manifest.json: never convert them.
+data/** -text
+*.db binary

@@ -32,8 +32,9 @@ export const LOAD_ORDER = Object.freeze([
   'attendance_reconciliation',
 ]);
 
+/** SQLite stores each CREATE statement verbatim, so line endings are fixed to keep the DB bytes stable. */
 export function readSchema() {
-  return readFileSync(SCHEMA_PATH, 'utf8');
+  return readFileSync(SCHEMA_PATH, 'utf8').replace(/\r\n/g, '\n');
 }
 
 /** Opens a database (in memory by default) with foreign keys on and the schema applied. */
