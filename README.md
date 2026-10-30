@@ -7,9 +7,9 @@ workflow that combine **leave requests, shift coverage, skills and labour constr
 and feasible schedules, expose every key decision and exception, keep full history, and produce
 measurable outputs.
 
-> **Status:** Phases 0–4 complete: setup, domain design and schema, master data, the
-> transaction workflow (leave, scheduling, swaps, attendance), and derived values with metrics.
-> Phase-by-phase progress lives in
+> **Status:** Phases 0–5 complete: setup, domain design and schema, master data, the
+> transaction workflow (leave, scheduling, swaps, attendance), derived values with metrics, and
+> labelled anomalies with a separate ground truth. Phase-by-phase progress lives in
 > [tracking.md](tracking.md). Sections marked _(Phase N)_ are filled in as that phase lands.
 
 ---
@@ -32,8 +32,8 @@ truth, validation, and fixed-seed reproducibility.
 - ✅ Derived tables recomputed from them: weekly hours and overtime, coverage status (gaps),
   leave balances, attendance reconciliation
 - ✅ Metrics M-01 … M-08 (`reports/metrics.json` + readable `reports/metrics.md`)
-- _(Phase 5)_ `ground_truth.csv` / `ground_truth.json` for injected anomalies, kept apart from
-  the inputs
+- ✅ `ground_truth/ground_truth.csv` / `.json` for the injected anomalies and boundary cases,
+  kept apart from the input tables
 - _(Phases 6–7)_ validation summary; JSON, SQL seed and SQLite database exports; source manifest
   (row counts + SHA-256); reproducibility report
 
@@ -185,18 +185,24 @@ schema itself re-checks their arithmetic (`gap = max(0, required − qualified)`
 - **attendance_reconciliation** — per worked shift: punches, worked/late/early/extension
   minutes, outcome (present, no-show, missing punch, no record).
 
-Key metrics for the full profile (`data/full/reports/metrics.md`):
+Key metrics for the full profile (`data/full/reports/metrics.md`). The published dataset
+includes the labelled anomalies of §9; the clean-baseline value is in brackets where they move
+it:
 
 | Metric | Value |
 | --- | --- |
-| M-01 Coverage filled by qualified staff / by staff who clocked in | 99.10 % / 97.52 % |
-| M-02 Short slots · missing headcount-hours | 669 · 6,752 h |
-| M-03 Employee-weeks with overtime · max weekly overtime · cap breaches | 7,371 · 12 h · 0 |
+| M-01 Coverage filled by qualified staff / by staff who clocked in | 99.08 % / 97.50 % (baseline 99.10 % / 97.52 %) |
+| M-02 Short slots · missing headcount-hours | 686 · 6,896 h (baseline 669 · 6,752 h) |
+| M-03 Employee-weeks with overtime · max weekly overtime · cap breaches | 7,371 · 13.48 h · 20 (baseline max 12 h, 0 breaches) |
 | M-04 Leave approval rate: annual / casual / sick / unpaid | 63 % / 79 % / 91 % / 81 % |
-| M-05 Swap approval of manager decisions · expiry rate | 41 % · 10.5 % |
+| M-05 Swap approval of manager decisions · expiry rate | 40 % · 10.5 % (baseline 41 %) |
 | M-06 Punctuality · no-shows · extensions | 93.1 % · 1.6 % · 9.4 % |
 | M-07 Due shifts with a complete record · worked ÷ scheduled (present) | 99.83 % · 101.4 % |
 | M-08 Fairness (Jain's index, mean across teams): nights / weekends / holidays / hours per contract | 0.977 / 0.948 / 0.907 / 0.994 |
+
+The 20 cap breaches are exactly the 20 labelled `OVERTIME_CAP_EXCEEDED` cases; the extra short
+slots come from the `SKILL_ABSENT` cases (the switched assignment no longer counts as qualified
+for its original skill).
 
 ## 7. Verify
 
@@ -206,7 +212,7 @@ npm run lint
 npm run format:check
 ```
 
-`npm test` (147 tests, about 26 s, most of it generating and loading the full profile) covers:
+`npm test` (172 tests, about 30 s, most of it generating and loading the full profile) covers:
 
 - **Schema:** loads into SQLite and accepts a fully consistent fixture touching all 21 tables;
   enum, rule and lifecycle lists match between code, schema and docs; 17 kinds of broken rows
@@ -241,8 +247,15 @@ npm run format:check
   gaps, leave balances; Jain's index and percentiles. At full scale: no cap breaches, every due
   shift reconciled, short slots equal an independent count, no negative balances, metrics add up
   to the source tables and are reproducible.
-- **CLI:** writes one CSV per table with schema-ordered headers plus `metrics.json` /
-  `metrics.md`; fails cleanly on an unknown profile.
+- **Anomalies and ground truth (both profiles):** exact anomaly counts per type; boundary counts
+  (full: all reachable types complete); layout, IDs, rules and classes; every label points at
+  existing records; every anomaly detected by its own detector; no boundary flagged; no
+  finding outside the labels; overtime breaches and at-cap weeks visible in the derived
+  tables; untouched tables identical to the baseline and changed rows only on labelled records;
+  no label-like table or column in the inputs; FK-clean load; same labels on every run.
+- **CLI:** writes one CSV per table with schema-ordered headers, `metrics.json` / `metrics.md`,
+  and the ground truth in its own folder (never next to the CSVs); fails cleanly on an unknown
+  profile.
 
 _(Phase 6–7: how to read the validation summary and reproducibility report.)_
 
@@ -275,11 +288,34 @@ unknown enums, broken FKs, inconsistent derived columns). Cross-row business rul
 (double booking, rest, overtime cap, swap approval) are checked by the validator, so the
 deliberately injected anomalies can be loaded and then detected.
 
-## 9. Edge cases and ground truth _(Phase 5)_
+## 9. Edge cases and ground truth
 
-Labelled anomalies: employee double-booked · approved leave overlaps assigned shift · required
-skill absent · overtime cap exceeded · swap applied without approval. Valid boundary cases are
-labelled too.
+After the clean baseline is built (and shown to break no rule), labelled cases are injected and
+the derived tables are recomputed from the final records. Labels are written only to
+`data/<profile>/ground_truth/ground_truth.csv` and `.json`; no input table or column marks a row
+as injected.
+
+| Case | Rule | How it is made | Full profile |
+| --- | --- | --- | --- |
+| Employee double-booked | R-SCH-01 | A second booking of a shift they already work, with a no-show on it | 20 |
+| Approved leave overlaps an assigned shift | R-SCH-02 | A shift added inside an existing approved leave, with a no-show | 20 |
+| Required skill absent | R-SCH-03 | A worked assignment switched to a team skill the person does not hold | 20 |
+| Overtime cap exceeded | R-OVT-02 | A week's last clock-out moved past the remaining overtime budget | 20 |
+| Swap applied without approval | R-SWP-06 | The `APPROVED` event removed from an applied swap | 20 |
+| *Boundary:* overtime exactly at the cap | R-OVT-02 | Last clock-out set so overtime = cap | 10 |
+| *Boundary:* leave ends the day before a shift | R-SCH-02 | Found in the data | 10 |
+| *Boundary:* exactly 6 consecutive days | R-SCH-07 | Found in the data | 10 |
+| *Boundary:* swap requested exactly 24 h ahead | R-SWP-04 | `requested_at` set to shift start − 24 h | 10 |
+
+Each anomaly breaks only its own rule (the one expected side effect: an unapproved swap also
+breaks its event chain, R-SWP-08), touches only the rows it names, and uses a different
+employee from every other label. The exact-11-hour rest boundary cannot occur with the
+configured templates, so a unit test covers it instead. Details:
+[business rules §4](docs/business-rules.md#4-labelled-anomalies-and-boundary-cases).
+
+Run on the full dataset, the Phase 3 rule checks find all 100 anomalies, flag none of the
+40 boundary cases, and raise no finding outside the labels. Phase 6 turns this into precision
+and recall per type.
 
 ## 10. Assumptions
 
@@ -303,6 +339,14 @@ Full list: [tracking.md §9](tracking.md#9-open-questions--assumptions).
 ## 12. Testing approach _(Phase 10)_
 
 ## 13. Known limitations & next steps _(Phase 10)_
+
+Recorded so far:
+
+- Injected assignments take the next free `ASG-` numbers, so their IDs sit after the creation
+  order of their neighbours. The detectors never use ID order, but a model that did could tell
+  injected rows apart. Renumbering would change baseline IDs, which must stay immutable.
+- The starter profile is too small to place a swap exactly at the notice limit; the full profile
+  has all reachable boundary types.
 
 ## 14. Data provenance
 

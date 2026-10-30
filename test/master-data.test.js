@@ -291,6 +291,12 @@ describe('generate CLI', () => {
       assert.deepEqual(readdirSync(reports).sort(), ['metrics.json', 'metrics.md']);
       const metrics = JSON.parse(readFileSync(join(reports, 'metrics.json'), 'utf8'));
       assert.equal(metrics.M04_leave.requests, config.profiles.starter.leaveRequests);
+      // Labels live in their own folder, never next to the input tables.
+      const truthDir = join(out, 'starter', 'ground_truth');
+      assert.deepEqual(readdirSync(truthDir).sort(), ['ground_truth.csv', 'ground_truth.json']);
+      const truth = JSON.parse(readFileSync(join(truthDir, 'ground_truth.json'), 'utf8'));
+      assert.deepEqual(truth, dataset.groundTruth);
+      assert.ok(!readdirSync(dir).some((file) => /ground|truth|label|anomal/i.test(file)));
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

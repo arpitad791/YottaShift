@@ -16,7 +16,7 @@ traceability matrix and the change log at the end of every phase.
 | Build | Fully local, no paid or hosted services |
 | Stack | Node.js 24 (ESM) · Express 5 · React 19 + Vite · SQLite (built-in `node:sqlite`) · `node:test` · ESLint + Prettier |
 | Fixed seed | `20261022` |
-| Current phase | Phase 4 — done; next: Phase 5 |
+| Current phase | Phase 5 — done; next: Phase 6 |
 
 ## 2. Working agreement
 
@@ -38,8 +38,8 @@ traceability matrix and the change log at the end of every phase.
 | 2 | Generator core & master data | seeded RNG, ID helpers, scale profiles, LaborPolicy, Team, Skill, Employee, EmployeeSkill, LeaveEntitlement, ShiftTemplate, HolidayCalendar, Shift, CoverageRequirement | ✅ Done |
 | 3 | Transactions & events | LeaveRequest + rule-based decisions, scheduler (ShiftAssignment), AttendanceEvent, SwapRequest with manager approval — all with event history | ✅ Done |
 | 4 | Derived values & metrics | overtime, leave balances, coverage gaps, attendance reconciliation, fairness scores — computed from source records | ✅ Done |
-| 5 | Edge-case injection & ground truth | 5 required anomaly types + boundary cases, `ground_truth.csv/json` kept separate | ⏳ Next |
-| 6 | Validation & evaluation | integrity checks, rule detectors, detector-vs-ground-truth scoring, validation summary | ⬜ |
+| 5 | Edge-case injection & ground truth | 5 required anomaly types + boundary cases, `ground_truth.csv/json` kept separate | ✅ Done |
+| 6 | Validation & evaluation | integrity checks, rule detectors, detector-vs-ground-truth scoring, validation summary | ⏳ Next |
 | 7 | Export & reproducibility | CSV / JSON / SQL seed / SQLite DB, source manifest with checksums, two-run reproducibility proof | ⬜ |
 | 8 | Express API | read endpoints for schedules, gaps, exceptions, history; manager actions append events | ⬜ |
 | 9 | React dashboard | manager / HR / ops views of coverage, exceptions, swaps, leave, metrics | ⬜ |
@@ -126,15 +126,19 @@ Verified 2026-10-30: `npm test` 147/147 (≈ 26 s); lint and format clean; two i
 Fixed during the phase: one hand-computed expectation in the new fixture was wrong (it missed that E1 also worked that day); the code was right, the fixture was corrected to keep a genuine "unqualified assignee → gap" case.
 Suggested commit: `feat(derive): derived overtime, coverage, balances, reconciliation and metrics`
 
-### Phase 5 — Edge-case injection & ground truth
+### Phase 5 — Edge-case injection & ground truth ✅
 
-- [ ] Inject after the valid baseline, each with a label ([business rules §4](docs/business-rules.md#4-labelled-anomalies-and-boundary-cases)): double-booked employee, approved leave overlapping an assigned shift, required skill absent, overtime cap exceeded, swap applied without approval
-- [ ] Boundary cases kept **valid** and labelled as such (overtime exactly at cap, rest exactly at minimum, leave ending the day before a shift, exactly max consecutive days, swap at the notice limit)
-- [ ] Injection touches only the targeted rows; unrelated rows unchanged; counts configurable per profile
-- [ ] `ground_truth/ground_truth.json` + `ground_truth.csv` in the layout of [data dictionary §10](docs/data-dictionary.md#10-ground-truth-file) — stored apart from inputs; no input column reveals a label
-- [ ] Tests: every label points to real record IDs; no label leaks into input tables
+- [x] [`src/generator/anomalies/inject.js`](src/generator/anomalies/inject.js) runs **after** the clean baseline; derived tables are then recomputed from the final records (`generateDataset`; `{ anomalies: false }` gives the baseline)
+- [x] The 5 required anomalies, each built to break only its own rule and stay structurally valid: double booking (duplicate booking of a worked shift + no-show; only weeks with room under R-SCH-08), leave overlap (shift added inside an existing approved leave + no-show; the leave untouched so no later decision changes), skill absent (worked assignment switched to a team skill not held), overtime cap exceeded (last clock-out of a full worked week moved past the budget), swap without approval (APPROVED event removed; R-SWP-08 also fires — documented)
+- [x] Boundary cases kept valid and labelled: overtime exactly at cap (nudged), leave ending the day before a shift (found), exactly 6 consecutive days (found), swap requested exactly 24 h ahead (nudged); rest exactly 11 h is impossible with the configured templates → covered by a new scheduler unit test (B → G) and listed in `UNREACHABLE_BOUNDARIES`
+- [x] One employee per label, so no two cases interact; untouched tables stay byte-identical to the baseline
+- [x] Counts per profile (`anomaliesPerType`, `boundaryCasesPerType`): starter 3 / 2, full 20 / 10 → full: 100 anomalies + 40 boundary cases; starter: 15 + 6 (no swap there is decided within 24 h of its shift)
+- [x] [`src/export/ground-truth.js`](src/export/ground-truth.js): `data/<profile>/ground_truth/ground_truth.csv` + `.json` in the layout of data dictionary §10, separate from `csv/`; never loaded as a table
+- [x] Tests — 25 new ([`anomalies.test.js`](test/anomalies.test.js) + 1 scheduler unit test): exact anomaly counts; boundary counts (full: complete); layout / IDs / rules / classes; every label points at existing records; **every anomaly detected by its own detector, no boundary flagged, no finding outside the labels**; breaches and at-cap weeks visible in `employee_week_summary`; untouched tables identical and changed rows only on labelled records; no label-like table or column; FK-clean load of the injected full profile; identical labels on rerun. Baseline tests (Phases 3–4) now explicitly use the clean baseline; the CLI test checks the ground-truth folder
 
-Exit criteria: injected counts equal configured counts; leakage test passes. Suggested commit: `feat: labelled anomaly injection with separate ground truth`
+Results (full profile): rule checks find 20/20 of each anomaly type, 0/40 boundary cases flagged, 0 unexpected findings (20 R-SWP-08 side effects, all on labelled swaps); `employee_week_summary` shows exactly 20 cap breaches; metrics move as expected (short slots 669 → 686 from the skill switches, max weekly overtime 12 → 13.48 h, swap approval 41 % → 40 %).
+Verified 2026-10-30: `npm test` 172/172 (≈ 29 s); lint and format clean; two independent runs of both profiles byte-identical (50/50 files incl. ground truth).
+Suggested commit: `feat(anomalies): labelled anomaly and boundary injection with separate ground truth`
 
 ### Phase 6 — Validation & evaluation
 
@@ -215,14 +219,14 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | W-08 | Swaps with manager approval | 3 | ✅ 1,500 swaps: manager approval/rejection, system expiry, requester cancellation, applied swaps |
 | W-09 | Overtime and coverage gaps computed | 4 | ✅ `employee_week_summary` (overtime) and `coverage_status` (gaps) recomputed from source |
 | W-10 | State changes as explicit records/events; never overwrite history | 1, 3 | ✅ status changes only as appended events; status = last event (checked) |
-| W-11 | Outcomes and ground-truth labels from documented rules, not random | 1, 3, 5 | ✅ outcomes from rules with rule IDs; leave decisions replayable (`decideLeaves` is pure) · ground truth Phase 5 |
+| W-11 | Outcomes and ground-truth labels from documented rules, not random | 1, 3, 5 | ✅ outcomes from rules with rule IDs; ground-truth labels come from the injection rules, each naming the rule it breaks; leave decisions replayable |
 | E-01 | All 10 core entities present | 1 | ✅ data-dictionary §3 + schema.sql |
 | E-02 | PK for every entity, FK for every relationship | 1 | ✅ schema.sql; erd.md §2 (all 47 FK columns) |
 | E-03 | Cardinality, optional relationships, effective dates, lifecycle states documented | 1 | ✅ erd.md §2–§5, data-dictionary |
 | E-04 | Bridge tables for N:M | 1 | ✅ `employee_skill` bridge; `shift_assignment`, `coverage_requirement` as associative entities (erd.md §3) |
 | E-05 | Event history for state changes | 1, 3 | ✅ 3 event tables populated; lifecycle check passes on every chain |
 | E-06 | Validate all joins | 6 | FK report |
-| E-07 | Anomalies keep an issue_type / ground-truth label; unrelated rows untouched | 5 | ground_truth + injection test |
+| E-07 | Anomalies keep an issue_type / ground-truth label; unrelated rows untouched | 5 | ✅ labels in `ground_truth/` only; anomalies touch only their own rows (isolation test); untouched tables identical to the baseline |
 | N-01 | IDs: `EMP-000001`, `SHIFT-2026-01-01-A`, `LVE-2026-000001`, `ATT-<employee-id>-<timestamp>`, `SWP-2026-000001` | 2 | ✅ all five brief formats generated (EMP, SHIFT, LVE, ATT, SWP) and enforced by schema + `ID_PATTERNS` |
 | N-02 | Zero-padded counters, immutable IDs, identical across files | 2, 7 | ✅ zero-padded, creation-ordered, identical across reruns; same IDs in CSV and DB · JSON/SQL Phase 7 |
 | S-01 | Step 1 data dictionary: type, required/optional, allowed values, units, uniqueness, validation rule | 1 | ✅ data-dictionary.md (all 21 tables) |
@@ -231,17 +235,17 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | S-04 | Step 4 volume: 2,000 employees, 100 teams, 90 days of shifts, 5,000 leave requests | 2, 3 | ✅ 2,000 employees, 100 teams, 90 days (360 shifts), 5,000 leave requests |
 | S-05 | Step 4 public holidays, absences, overtime caps, skill-specific staffing | 2, 3 | ✅ 5 holidays; absences (approved leave, sick call-ins, 1,481 no-shows); overtime caps enforced; skill-specific staffing |
 | S-06 | Step 4 fixed seed 20261022; same generator for starter and full | 2 | ✅ seed `20261022`; `starter` and `full` profiles through one generator; byte-identical reruns |
-| S-07 | Step 5 valid baseline first, then labelled edge cases | 3, 5 | ✅ clean baseline has zero violations (tested) · labelled injection Phase 5 |
+| S-07 | Step 5 valid baseline first, then labelled edge cases | 3, 5 | ✅ clean baseline proven violation-free (Phase 3 tests), then labelled injection (`generateDataset`) |
 | S-08 | Step 6 derived values computed from source records | 4 | ✅ `src/derive/derived-tables.js` — pure functions of the source tables; schema CHECKs re-verify the arithmetic · reconciliation of exported files Phase 6 |
-| S-09 | Step 7 separate ground_truth.csv/json, no leakage | 5 | ground_truth/, leakage test |
+| S-09 | Step 7 separate ground_truth.csv/json, no leakage | 5 | ✅ `data/<profile>/ground_truth/ground_truth.csv` + `.json`, separate folder, never loaded as a table; leakage tests on table and column names |
 | S-10 | Step 8 validation: PK, FK, enums, date ordering, arithmetic reconciliation, lifecycle transitions, duplicates | 6 | validation_summary |
 | S-11 | Step 9 export CSV/JSON/SQL seed + README, schema/dictionary, generator command, seed, source manifest, validation summary | 7 | output folder |
 | S-12 | Step 10 regenerate twice with same seed; compare counts/checksums | 7 | reproducibility.md |
-| X-01 | Edge case: employee double-booked | 5, 6 | ✅ detector `R-SCH-01` (proven on injected copy) · labelled injection Phase 5 |
-| X-02 | Edge case: approved leave overlaps assigned shift | 5, 6 | ✅ detector `R-SCH-02` (proven on injected copy) · labelled injection Phase 5 |
-| X-03 | Edge case: required skill absent | 5, 6 | ✅ detector `R-SCH-03` (proven on injected copy) · labelled injection Phase 5 |
-| X-04 | Edge case: overtime cap exceeded | 5, 6 | ✅ detector `R-OVT-02` (proven on injected copy) · labelled injection Phase 5 |
-| X-05 | Edge case: swap applied without approval | 5, 6 | ✅ detector `R-SWP-06` (proven on injected copy) · labelled injection Phase 5 |
+| X-01 | Edge case: employee double-booked | 5, 6 | ✅ 20 labelled cases (full), all detected by R-SCH-01 · precision/recall report Phase 6 |
+| X-02 | Edge case: approved leave overlaps assigned shift | 5, 6 | ✅ 20 labelled cases (full), all detected by R-SCH-02 · precision/recall report Phase 6 |
+| X-03 | Edge case: required skill absent | 5, 6 | ✅ 20 labelled cases (full), all detected by R-SCH-03 · precision/recall report Phase 6 |
+| X-04 | Edge case: overtime cap exceeded | 5, 6 | ✅ 20 labelled cases (full), all detected by R-OVT-02; 20 breaches in `employee_week_summary` · report Phase 6 |
+| X-05 | Edge case: swap applied without approval | 5, 6 | ✅ 20 labelled cases (full), all detected by R-SWP-06 (R-SWP-08 side effect documented) · report Phase 6 |
 | A-01 | Coverage requirements met or gaps reported | 4, 6 | ✅ `coverage_status`: 669 short slots reported, never filled unqualified; M-01 / M-02 |
 | A-02 | Working-hour constraints hold | 3, 6 | ✅ rest, consecutive-day, weekly-hour and overtime-cap rules hold in the baseline (tested) |
 | A-03 | Attendance reconciles with schedules | 4, 6 | ✅ `attendance_reconciliation`: 99.83 % complete records, 0 with no record; M-07 |
@@ -250,8 +254,8 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | V-02 | Consistent IDs and valid joins | 6 | FK report |
 | V-03 | Dependency/lifecycle consistency across entities | 6 | ✅ lifecycle chains checked for all three event tables; rosters published before their week |
 | V-04 | Correct derived values and reconciliation | 4, 6 | ✅ derived values tested against hand-computed fixtures and independent recounts · file-level reconciliation Phase 6 |
-| V-05 | Normal, boundary, failure and exception coverage | 5, 6 | ground truth incl. boundary labels |
-| V-06 | Separate ground truth | 5 | ground_truth/ |
+| V-05 | Normal, boundary, failure and exception coverage | 5, 6 | ✅ normal baseline, 4 boundary types (40 cases, none flagged), 5 failure types (100 cases), exception paths (rejections, expiries, gaps, missing punches) |
+| V-06 | Separate ground truth | 5 | ✅ separate `ground_truth/` folder; no label-like table or column in the inputs (tested) |
 | V-07 | Fixed-seed reproducibility, documentation, lawful provenance | 7, 10 | reproducibility.md, README, manifest provenance |
 | P-01 | External data optional; if used record URL, version, retrieval date, licence, attribution, transformations, discarded fields | 2, 7 | ✅ no external data used; holiday calendar synthetic and labelled (README §10, §14) |
 | P-02 | No confidential/personal data; synthetic if licensing unclear | all | ✅ synthetic names from common-name lists; no real people |
@@ -314,17 +318,17 @@ YottaFlex.ai/  (repo: YottaShift)
 ├── src/
 │   ├── lib/                # ✅ rng, ids, dates, csv, allocate, heap (hashing in Phase 7)
 │   ├── domain/             # ✅ constants.js (enums, transitions, ID patterns), rules.js (rule catalogue, policy)
-│   ├── generator/          # ✅ config.js, master/ (10 master tables), transactions/ (leave, timeline, attendance), index.js
+│   ├── generator/          # ✅ config.js, master/, transactions/ (leave, timeline, attendance), anomalies/ (labelled injection), index.js
 │   ├── scheduler/          # ✅ roster-state.js (hard rules, fairness key), scheduler.js (weekly publication)
 │   ├── derive/             # ✅ derived-tables.js (4 derived tables), metrics.js (M-01 … M-08)
 │   ├── validation/         # ✅ business-rules.js (detectors) · integrity checks + evaluation in Phase 6
-│   ├── export/             # ✅ csv-export.js, reports.js (metrics) · JSON, SQL seed, SQLite DB, manifest in Phase 7
+│   ├── export/             # ✅ csv-export.js, reports.js (metrics), ground-truth.js · JSON, SQL seed, SQLite DB, manifest in Phase 7
 │   ├── db/                 # ✅ database.js (open DB with schema, insert rows)
 │   ├── api/                # Express app
 │   └── cli/                # ✅ generate.js · validate / reproduce later
 ├── client/                 # React + Vite dashboard (workspace)
-├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive tests
-├── data/                   # ✅ starter/csv committed as sample; full/ git-ignored
+├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive, anomalies tests
+├── data/                   # ✅ <profile>/csv, reports, ground_truth; starter committed as sample; full/ git-ignored
 └── ai-disclosure/          # prompt history and AI-usage notes
 ```
 
@@ -366,6 +370,11 @@ YottaFlex.ai/  (repo: YottaShift)
 | D-32 | 2026-10-30 | "Attended" = a qualified assignee who clocked in (present or missing clock-out) | A missing clock-out still means the person turned up; it is an attendance data exception, not a coverage gap | Count only complete punch pairs |
 | D-33 | 2026-10-30 | Fairness measured among members employed for the whole window, within their team | Joiners and leavers have fewer shifts by design and would distort the index | All members, or org-wide comparison |
 | D-34 | 2026-10-30 | Metrics written as JSON plus a readable Markdown summary, with no timestamps | Machine-checkable and reviewer-friendly; stays byte-reproducible | JSON only |
+| D-35 | 2026-10-30 | Inject anomalies on the finished baseline, then recompute derived tables | The baseline is proven clean first; derived values (overtime flags, gaps) then reflect the anomalies like they would in real data | Generate anomalies inside the simulation (hard to label precisely) |
+| D-36 | 2026-10-30 | Each anomaly is built to break exactly one rule (e.g. duplicate booking of the same shift; extra bookings get a no-show) and uses its own employee | Clean labels: precision/recall measure the detector, not knock-on effects | Random corruption (many secondary violations) |
+| D-37 | 2026-10-30 | Leave overlap made by adding a shift inside an existing approved leave, not by adding a leave | Leaves feed balances and team caps; a new approved leave would change later decisions on unrelated rows | Inject an approved leave |
+| D-38 | 2026-10-30 | Boundary cases found in the data where they occur naturally, nudged only where needed; unreachable ones documented and unit-tested | Keeps boundaries realistic; honest about the 11 h rest case the templates cannot produce | Force every boundary (would need new templates) |
+| D-39 | 2026-10-30 | A finding matches a label when issue type is equal and record IDs intersect | Detectors report whole groups (e.g. all of a week's shifts); exact set equality would be brittle | Exact record-set equality |
 
 ## 9. Open questions & assumptions
 
@@ -392,6 +401,8 @@ YottaFlex.ai/  (repo: YottaShift)
 | A-15 | Sick call-ins arrive 03:00–05:30 on the first sick day, before any shift that day; shifts starting within 30 min of a leave decision are not backfilled. | Assumed |
 | A-16 | While a swap request is open, neither of its assignments can be targeted by another swap request. | Assumed |
 | A-17 | A manual clock-out correction is recorded at the scheduled shift end, 3–5 h after it. | Assumed |
+| A-18 | Injected assignments take the next free ID numbers (IDs are immutable); their IDs are therefore out of creation order. No detector uses ID order. | Assumed (known limitation) |
+| A-19 | Boundary cases are "up to N as the data allows"; the full profile has all reachable types complete, the starter has no swap-at-notice-limit case. | Assumed |
 
 ## 10. Change log
 
@@ -402,3 +413,4 @@ YottaFlex.ai/  (repo: YottaShift)
 | 2026-10-30 | 2 | Seeded RNG, date/ID/CSV/allocation helpers; strict generator config with starter and full profiles; master-data generators for all 10 master tables (Workforce Office, demand sized from supply, lapsing certifications, revisions); `npm run generate`; 61 new tests (86 total). Fixed the coverage-revision rule after a capacity test failed. Decisions D-17 … D-22, assumptions A-11 … A-13 |
 | 2026-10-30 | 3 | Leave requests + replayable decision engine; roster state, fair scheduler, weekly publication, late-leave backfill, swap workflow, attendance; business-rule checks; all 17 source tables generated (≈ 400k rows at full scale); 44 new tests (130 total). Schema: deferred swap FK, `ASSIGNMENT_CHANGED`, FK child indexes. Fixed swap counterpart realism, fairness banding, end-of-window swap placement and load performance. Decisions D-23 … D-30, assumptions A-14 … A-17 |
 | 2026-10-30 | 4 | Derived tables (week summary, coverage status, leave balance, attendance reconciliation) and metrics M-01 … M-08 with JSON + Markdown reports; shared worked-time/overtime arithmetic; 17 new tests (147 total). Decisions D-31 … D-34 |
+| 2026-10-30 | 5 | Labelled anomaly injection (5 types) and boundary cases (4 reachable types) on the clean baseline; ground truth CSV + JSON in its own folder; derived tables recomputed after injection; `generateDataset({ anomalies: false })` for the baseline; 25 new tests (172 total) proving detection, no false positives, isolation and no leakage. Decisions D-35 … D-39, assumptions A-18 … A-19 |

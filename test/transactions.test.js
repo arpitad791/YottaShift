@@ -10,9 +10,11 @@ import { checkBusinessRules } from '../src/validation/business-rules.js';
 import { addDays } from '../src/lib/dates.js';
 
 const config = loadConfig();
+// The clean baseline, before Phase 5 injects labelled anomalies.
+const baseline = { anomalies: false };
 const datasets = {
-  starter: generateDataset(config, 'starter'),
-  full: generateDataset(config, 'full'),
+  starter: generateDataset(config, 'starter', baseline),
+  full: generateDataset(config, 'full', baseline),
 };
 const tablesOf = (profile) => Object.fromEntries(datasets[profile].tables);
 const check = (tables) => checkBusinessRules(tables, { patterns: config.operatingPatterns });
@@ -53,7 +55,7 @@ for (const profile of ['starter', 'full']) {
 
     it('regenerates byte-identically with the same seed', () => {
       assert.equal(
-        digest(generateDataset(config, profile).tables),
+        digest(generateDataset(config, profile, baseline).tables),
         digest(datasets[profile].tables),
       );
     });

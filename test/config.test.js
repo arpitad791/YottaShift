@@ -21,6 +21,8 @@ describe('generator config', () => {
       days: 90,
       leaveRequests: 5000,
       swapRequests: 1500,
+      anomaliesPerType: 20,
+      boundaryCasesPerType: 10,
     });
     assert.ok(resolveProfile(config, 'starter').employees < 2000);
   });

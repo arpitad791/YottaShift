@@ -97,6 +97,13 @@ describe('roster rules (R-SCH-01 … R-SCH-08)', () => {
     assert.equal(state.check(emp(2), shiftOf(state, '2026-01-06', 'C'), 'SKL-001', NOW), null);
   });
 
+  it('allows exactly the minimum rest (BOUNDARY_REST_AT_MINIMUM): 22:00 → 09:00 is 11 h', () => {
+    // No single operating pattern has templates 11 h apart, so this boundary only exists here.
+    const { state, put, emp } = roster();
+    put(1, '2026-01-05', 'B');
+    assert.equal(state.check(emp(1), shiftOf(state, '2026-01-06', 'G'), 'SKL-001', NOW), null);
+  });
+
   it('allows six days in a row but not seven (R-SCH-07)', () => {
     const { state, put, emp } = roster();
     for (const day of ['05', '06', '07', '08', '09']) put(1, `2026-01-${day}`, 'A');

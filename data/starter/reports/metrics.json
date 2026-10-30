@@ -2,21 +2,21 @@
   "M01_coverage_fill": {
     "requirement_slots": 1156,
     "required_headcount": 2765,
-    "filled_headcount": 2753,
-    "fill_rate": 0.9957,
-    "attended_headcount": 2699,
-    "attended_fill_rate": 0.9761
+    "filled_headcount": 2752,
+    "fill_rate": 0.9953,
+    "attended_headcount": 2696,
+    "attended_fill_rate": 0.975
   },
   "M02_gaps": {
-    "gap_slots": 11,
-    "gap_headcount": 12,
-    "gap_headcount_hours": 96,
-    "attended_gap_headcount": 66,
+    "gap_slots": 12,
+    "gap_headcount": 13,
+    "gap_headcount_hours": 104,
+    "attended_gap_headcount": 69,
     "by_template": {
       "A": {
-        "gap_slots": 1,
-        "gap_headcount": 1,
-        "gap_headcount_hours": 8
+        "gap_slots": 2,
+        "gap_headcount": 2,
+        "gap_headcount_hours": 16
       },
       "B": {
         "gap_slots": 1,
@@ -24,28 +24,33 @@
         "gap_headcount_hours": 8
       },
       "C": {
-        "gap_slots": 4,
-        "gap_headcount": 4,
-        "gap_headcount_hours": 32
+        "gap_slots": 5,
+        "gap_headcount": 5,
+        "gap_headcount_hours": 40
       },
       "G": {
-        "gap_slots": 5,
-        "gap_headcount": 6,
-        "gap_headcount_hours": 48
+        "gap_slots": 4,
+        "gap_headcount": 5,
+        "gap_headcount_hours": 40
       }
     },
     "by_day_type": {
       "WEEKDAY": {
-        "gap_slots": 11,
-        "gap_headcount": 12,
-        "gap_headcount_hours": 96
+        "gap_slots": 12,
+        "gap_headcount": 13,
+        "gap_headcount_hours": 104
       }
     },
     "by_team_function": {
-      "FIELD_SERVICE": {
+      "CUSTOMER_SUPPORT": {
         "gap_slots": 2,
         "gap_headcount": 2,
         "gap_headcount_hours": 16
+      },
+      "FIELD_SERVICE": {
+        "gap_slots": 1,
+        "gap_headcount": 1,
+        "gap_headcount_hours": 8
       },
       "SECURITY": {
         "gap_slots": 5,
@@ -74,15 +79,15 @@
         "gap_headcount_hours": 32
       },
       {
-        "team_id": "TEAM-001",
-        "team_name": "Warehouse PUN 01",
-        "gap_slots": 1,
-        "gap_headcount": 1,
-        "gap_headcount_hours": 8
+        "team_id": "TEAM-003",
+        "team_name": "Customer Support BLR 01",
+        "gap_slots": 2,
+        "gap_headcount": 2,
+        "gap_headcount_hours": 16
       },
       {
-        "team_id": "TEAM-006",
-        "team_name": "Field Service HYD 01",
+        "team_id": "TEAM-001",
+        "team_name": "Warehouse PUN 01",
         "gap_slots": 1,
         "gap_headcount": 1,
         "gap_headcount_hours": 8
@@ -99,12 +104,12 @@
   "M03_overtime": {
     "employee_weeks": 926,
     "weeks_with_overtime": 173,
-    "total_overtime_hours": 388.21,
+    "total_overtime_hours": 396.22,
     "overtime_hours_p50": 1.07,
-    "overtime_hours_p90": 7.74,
-    "overtime_hours_max": 10.8,
-    "cap_breaches": 0,
-    "scheduled_vs_contracted": 0.7999
+    "overtime_hours_p90": 7.86,
+    "overtime_hours_max": 12,
+    "cap_breaches": 3,
+    "scheduled_vs_contracted": 0.8017
   },
   "M04_leave": {
     "requests": 160,
@@ -144,7 +149,7 @@
       "COVER": 27,
       "SWAP": 33
     },
-    "approval_rate_of_decided": 0.4182,
+    "approval_rate_of_decided": 0.3846,
     "expiry_rate": 0.0667,
     "rejections_by_reason": {
       "DOUBLE_BOOKING": 8,
@@ -159,33 +164,33 @@
     "manager_response_hours_p90": 25.05
   },
   "M06_attendance": {
-    "due_assignments": 2753,
+    "due_assignments": 2759,
     "by_outcome": {
       "MISSING_PUNCH": 7,
-      "NO_SHOW": 54,
+      "NO_SHOW": 60,
       "PRESENT": 2692
     },
-    "no_show_rate": 0.0196,
+    "no_show_rate": 0.0217,
     "punctuality_rate": 0.9285,
     "late_rate": 0.0715,
-    "early_leave_rate": 0.0323,
-    "extension_rate": 0.0996,
+    "early_leave_rate": 0.0319,
+    "extension_rate": 0.101,
     "missing_punch_rate": 0.0025,
     "manual_correction_rate": 0.0108
   },
   "M07_reconciliation": {
-    "due_assignments": 2753,
+    "due_assignments": 2759,
     "complete_record_rate": 0.9975,
     "no_record": 0,
-    "scheduled_hours": 22024,
-    "worked_hours": 21867.32,
-    "worked_vs_scheduled_present": 1.0154,
+    "scheduled_hours": 22072,
+    "worked_hours": 21875.32,
+    "worked_vs_scheduled_present": 1.0158,
     "by_operating_pattern": {
       "BUSINESS_HOURS": {
         "present_assignments": 633,
         "scheduled_hours": 5064,
-        "worked_hours": 5105.4,
-        "worked_vs_scheduled": 1.0082
+        "worked_hours": 5106.13,
+        "worked_vs_scheduled": 1.0083
       },
       "EXTENDED_HOURS": {
         "present_assignments": 282,
@@ -196,8 +201,8 @@
       "TWENTY_FOUR_SEVEN": {
         "present_assignments": 1777,
         "scheduled_hours": 14216,
-        "worked_hours": 14474.82,
-        "worked_vs_scheduled": 1.0182
+        "worked_hours": 14482.08,
+        "worked_vs_scheduled": 1.0187
       }
     }
   },
@@ -206,21 +211,21 @@
     "people": 177,
     "jain_nights": {
       "teams": 4,
-      "mean": 0.9126,
-      "min": 0.861,
+      "mean": 0.9114,
+      "min": 0.856,
       "max": 0.9394
     },
     "jain_weekends": {
       "teams": 5,
-      "mean": 0.8997,
+      "mean": 0.8986,
       "min": 0.8536,
       "max": 0.9386
     },
     "jain_holidays": {
       "teams": 5,
-      "mean": 0.8886,
+      "mean": 0.8867,
       "min": 0.8371,
-      "max": 0.9126
+      "max": 0.9098
     },
     "jain_hours_per_contract": {
       "teams": 9,
@@ -230,7 +235,7 @@
     },
     "cv_hours_per_contract": {
       "teams": 9,
-      "mean": 0.0849,
+      "mean": 0.0853,
       "min": 0.048,
       "max": 0.1178
     },
@@ -260,10 +265,10 @@
         "operating_pattern": "TWENTY_FOUR_SEVEN",
         "members": 27,
         "jain_nights": 0.9263,
-        "jain_weekends": 0.9011,
-        "jain_holidays": 0.9126,
-        "jain_hours_per_contract": 0.9905,
-        "cv_hours_per_contract": 0.0978
+        "jain_weekends": 0.8956,
+        "jain_holidays": 0.903,
+        "jain_hours_per_contract": 0.9891,
+        "cv_hours_per_contract": 0.105
       },
       {
         "team_id": "TEAM-004",
@@ -282,8 +287,8 @@
         "jain_nights": 0.9238,
         "jain_weekends": 0.8536,
         "jain_holidays": 0.8857,
-        "jain_hours_per_contract": 0.9972,
-        "cv_hours_per_contract": 0.0529
+        "jain_hours_per_contract": 0.997,
+        "cv_hours_per_contract": 0.055
       },
       {
         "team_id": "TEAM-006",
@@ -292,8 +297,8 @@
         "jain_nights": null,
         "jain_weekends": null,
         "jain_holidays": null,
-        "jain_hours_per_contract": 0.9874,
-        "cv_hours_per_contract": 0.113
+        "jain_hours_per_contract": 0.9886,
+        "cv_hours_per_contract": 0.1076
       },
       {
         "team_id": "TEAM-007",
@@ -309,11 +314,11 @@
         "team_id": "TEAM-008",
         "operating_pattern": "TWENTY_FOUR_SEVEN",
         "members": 25,
-        "jain_nights": 0.861,
+        "jain_nights": 0.856,
         "jain_weekends": 0.9386,
         "jain_holidays": 0.8977,
-        "jain_hours_per_contract": 0.9921,
-        "cv_hours_per_contract": 0.0891
+        "jain_hours_per_contract": 0.9922,
+        "cv_hours_per_contract": 0.0887
       },
       {
         "team_id": "TEAM-009",

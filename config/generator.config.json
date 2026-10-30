@@ -9,14 +9,18 @@
       "employees": 200,
       "days": 28,
       "leaveRequests": 160,
-      "swapRequests": 60
+      "swapRequests": 60,
+      "anomaliesPerType": 3,
+      "boundaryCasesPerType": 2
     },
     "full": {
       "teams": 100,
       "employees": 2000,
       "days": 90,
       "leaveRequests": 5000,
-      "swapRequests": 1500
+      "swapRequests": 1500,
+      "anomaliesPerType": 20,
+      "boundaryCasesPerType": 10
     }
   },
   "laborPolicies": [

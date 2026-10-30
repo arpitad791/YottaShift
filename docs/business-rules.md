@@ -375,24 +375,35 @@ Employment is effective-dated, so it has no event table.
 
 ## 4. Labelled anomalies and boundary cases
 
-Injected after the valid baseline (Phase 5). Each one is listed in `ground_truth.csv/json` with the
-rule it breaks. Nothing in the input tables marks it.
+Injected by [`src/generator/anomalies/inject.js`](../src/generator/anomalies/inject.js) **after**
+the valid baseline is complete (Phase 5); the derived tables are then recomputed from the final
+records. Each case is listed in `data/<profile>/ground_truth/ground_truth.csv` (and `.json`) with
+the rule it breaks. Nothing in the input tables marks it.
 
-| `issue_type` | Class | Rule | What is injected | Expected detection |
-| --- | --- | --- | --- | --- |
-| `DOUBLE_BOOKED` | ANOMALY | R-SCH-01 | A second active assignment for an employee on a date they already work | flagged |
-| `LEAVE_OVERLAP` | ANOMALY | R-SCH-02 | An approved leave covering a date on which the employee keeps an active assignment | flagged |
-| `SKILL_ABSENT` | ANOMALY | R-SCH-03 | An assignment for a skill the employee does not hold, or whose certification has expired | flagged |
-| `OVERTIME_CAP_EXCEEDED` | ANOMALY | R-OVT-02 | Extra worked time pushing weekly overtime past the cap | flagged |
-| `SWAP_WITHOUT_APPROVAL` | ANOMALY | R-SWP-06 | A swap applied with no `APPROVED` event | flagged |
-| `BOUNDARY_OVERTIME_AT_CAP` | BOUNDARY | R-OVT-02 | Weekly overtime exactly equal to the cap | not flagged |
-| `BOUNDARY_REST_AT_MINIMUM` | BOUNDARY | R-SCH-06 | Rest gap of exactly `min_rest_hours` | not flagged |
-| `BOUNDARY_LEAVE_ADJACENT_SHIFT` | BOUNDARY | R-SCH-02 | Leave ending the day before an assigned shift | not flagged |
-| `BOUNDARY_CONSECUTIVE_DAYS_AT_MAX` | BOUNDARY | R-SCH-07 | Exactly `max_consecutive_days` in a row | not flagged |
-| `BOUNDARY_SWAP_AT_NOTICE_LIMIT` | BOUNDARY | R-SWP-04 | Swap requested exactly 24 h before the shift, approved | not flagged |
+Each anomaly is built to break **only its own rule**, to touch only the rows it names, and to stay
+structurally valid (schema, FKs, IDs). Each employee is used by at most one label, so cases never
+interact.
+
+| `issue_type` | Class | Rule | How it is made | Rows touched | Expected detection |
+| --- | --- | --- | --- | --- | --- |
+| `DOUBLE_BOOKED` | ANOMALY | R-SCH-01 | A second booking of a shift the employee already works (another held skill if possible), with a `NO_SHOW` on it — they cannot be in two places. The same shift keeps rest and consecutive days unchanged; only weeks with room under R-SCH-08 are used | 1 new assignment + its event + 1 attendance event | flagged |
+| `LEAVE_OVERLAP` | ANOMALY | R-SCH-02 | A shift added inside an existing approved leave (fits every other roster rule), with a `NO_SHOW`. The leave itself is untouched, so no later leave decision changes | 1 new assignment + its event + 1 attendance event | flagged |
+| `SKILL_ABSENT` | ANOMALY | R-SCH-03 | A worked assignment switched to a skill its team requires but the employee does not hold | 1 assignment | flagged |
+| `OVERTIME_CAP_EXCEEDED` | ANOMALY | R-OVT-02 | In a full week where every shift was worked, the last clock-out moved later by the remaining budget + 15–90 min | 1 attendance event (new ID, since the ID contains the time) | flagged |
+| `SWAP_WITHOUT_APPROVAL` | ANOMALY | R-SWP-06 | The `APPROVED` event removed from an applied swap and the decision columns cleared; the chain becomes `REQUESTED → APPLIED`, so R-SWP-08 also fires on the same swap (expected) | 1 swap + its events | flagged |
+| `BOUNDARY_OVERTIME_AT_CAP` | BOUNDARY | R-OVT-02 | In a full week, the last clock-out moved so worked time equals contract + cap exactly | 1 attendance event | not flagged |
+| `BOUNDARY_LEAVE_ADJACENT_SHIFT` | BOUNDARY | R-SCH-02 | Found in the data: approved leave ending the day before an assigned shift | none | not flagged |
+| `BOUNDARY_CONSECUTIVE_DAYS_AT_MAX` | BOUNDARY | R-SCH-07 | Found in the data: exactly `max_consecutive_days` working days in a row | none | not flagged |
+| `BOUNDARY_SWAP_AT_NOTICE_LIMIT` | BOUNDARY | R-SWP-04 | An applied swap whose decision came within 24 h of the shift gets `requested_at` = shift start − 24 h exactly | 1 swap + its first event | not flagged |
+| `BOUNDARY_REST_AT_MINIMUM` | BOUNDARY | R-SCH-06 | **Not producible:** no two templates of one operating pattern are exactly 11 h apart (A/B/C give 8 h or 16 h, G gives 16 h). Covered by a scheduler unit test (B → G across patterns) | — | not flagged |
+
+Volumes: `anomaliesPerType` and `boundaryCasesPerType` per profile (starter 3 / 2, full 20 / 10).
+Boundary cases are found in, or nudged from, real records, so a small profile may have fewer
+(the starter has no swap decided within 24 h of its shift).
 
 Boundary labels test the detectors for false positives. A good detector flags every ANOMALY row
-and none of the BOUNDARY rows.
+and none of the BOUNDARY rows. A finding **matches** a label when it has the same `issue_type`
+and shares at least one record ID with the label's `record_ids`.
 
 ---
 

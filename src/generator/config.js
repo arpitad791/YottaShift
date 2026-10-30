@@ -114,12 +114,30 @@ export function validateConfig(config) {
   let longestWindow = 0;
   for (const [name, profile] of Object.entries(config.profiles)) {
     const path = `profiles.${name}`;
-    object(profile, path, ['teams', 'employees', 'days', 'leaveRequests', 'swapRequests']);
+    object(profile, path, [
+      'teams',
+      'employees',
+      'days',
+      'leaveRequests',
+      'swapRequests',
+      'anomaliesPerType',
+      'boundaryCasesPerType',
+    ]);
     number(profile.teams, `${path}.teams`, { integer: true, min: 2, max: 999 });
     number(profile.employees, `${path}.employees`, { integer: true, min: 10, max: 999_999 });
     number(profile.days, `${path}.days`, { integer: true, min: 7, max: 366 });
     number(profile.leaveRequests, `${path}.leaveRequests`, { integer: true, min: 0 });
     number(profile.swapRequests, `${path}.swapRequests`, { integer: true, min: 0 });
+    number(profile.anomaliesPerType, `${path}.anomaliesPerType`, {
+      integer: true,
+      min: 0,
+      max: 500,
+    });
+    number(profile.boundaryCasesPerType, `${path}.boundaryCasesPerType`, {
+      integer: true,
+      min: 0,
+      max: 500,
+    });
     longestWindow = Math.max(longestWindow, profile.days);
   }
 

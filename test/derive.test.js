@@ -324,8 +324,8 @@ describe('metric helpers', () => {
 // ---------------------------------------------------------------------------------------------
 // Full profile: derived tables agree with independent recomputation and the metrics add up.
 // ---------------------------------------------------------------------------------------------
-describe('derived tables and metrics at full scale', () => {
-  const dataset = generateDataset(config, 'full');
+describe('derived tables and metrics at full scale (clean baseline)', () => {
+  const dataset = generateDataset(config, 'full', { anomalies: false });
   const t = Object.fromEntries(dataset.tables);
   const metrics = computeMetrics(t, { patterns: config.operatingPatterns, window: dataset.window });
 

@@ -419,6 +419,12 @@ tables and the database, so no input feature can leak a label (Step 7 of the bri
 | `expected_detection` | BOOLEAN | Req | 1 for ANOMALY, 0 for BOUNDARY | — |
 | `description` | TEXT | Req | plain-language explanation | Non-blank |
 
+`ground_truth.json` holds the same rows as the CSV (same field names, `record_ids` kept as the
+`;`-joined string). Full profile: 100 ANOMALY rows (20 per type) and 40 BOUNDARY rows; see
+[business rules §4](business-rules.md#4-labelled-anomalies-and-boundary-cases) for how each is
+made. A detector finding matches a label when it has the same `issue_type` and shares at least
+one ID with `record_ids`.
+
 ---
 
 ## 11. Checks beyond the schema
