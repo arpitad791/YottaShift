@@ -7,8 +7,9 @@ workflow that combine **leave requests, shift coverage, skills and labour constr
 and feasible schedules, expose every key decision and exception, keep full history, and produce
 measurable outputs.
 
-> **Status:** Phases 0–3 complete: setup, domain design and schema, master data, and the
-> transaction workflow (leave, scheduling, swaps, attendance). Phase-by-phase progress lives in
+> **Status:** Phases 0–4 complete: setup, domain design and schema, master data, the
+> transaction workflow (leave, scheduling, swaps, attendance), and derived values with metrics.
+> Phase-by-phase progress lives in
 > [tracking.md](tracking.md). Sections marked _(Phase N)_ are filled in as that phase lands.
 
 ---
@@ -23,15 +24,18 @@ truth, validation, and fixed-seed reproducibility.
 
 **Actors:** employee, manager, HR partner, IT/operations partner, system administrator.
 
-## 2. What it produces _(Phases 2–7)_
+## 2. What it produces
 
-- Master and transaction tables: Employee, Team, Skill, ShiftTemplate, ShiftAssignment,
+- ✅ Master and transaction tables: Employee, Team, Skill, ShiftTemplate, ShiftAssignment,
   LeaveRequest, HolidayCalendar, AttendanceEvent, CoverageRequirement, SwapRequest (plus bridge
   and event-history tables)
-- Derived outputs: overtime, leave balances, coverage gaps, attendance reconciliation, fairness
-- `ground_truth.csv` / `ground_truth.json` for injected anomalies, kept apart from the inputs
-- Exports as CSV, JSON, SQL seed and a SQLite database, with a source manifest (row counts +
-  SHA-256), validation summary and reproducibility report
+- ✅ Derived tables recomputed from them: weekly hours and overtime, coverage status (gaps),
+  leave balances, attendance reconciliation
+- ✅ Metrics M-01 … M-08 (`reports/metrics.json` + readable `reports/metrics.md`)
+- _(Phase 5)_ `ground_truth.csv` / `ground_truth.json` for injected anomalies, kept apart from
+  the inputs
+- _(Phases 6–7)_ validation summary; JSON, SQL seed and SQLite database exports; source manifest
+  (row counts + SHA-256); reproducibility report
 
 ## 3. Tech stack
 
@@ -56,7 +60,7 @@ src/lib/         seeded RNG, ID, date, CSV and allocation helpers
 src/domain/      enums and rule constants
 src/generator/   master data → transactions → events → anomalies
 src/scheduler/   roster state (hard rules, fairness key) and the weekly scheduler
-src/derive/      overtime, balances, coverage gaps, fairness
+src/derive/      derived tables (overtime, coverage, balances, reconciliation) and metrics
 src/validation/  business-rule checks (anomaly detectors); integrity checks and evaluation in Phase 6
 src/export/      CSV, JSON, SQL seed, SQLite DB, manifest
 src/db/          SQLite access for the API
@@ -87,31 +91,31 @@ npm run generate -- --profile full
 ```
 
 Both profiles use the same generator and seed (`20261022`); only the scale differs
-(`config/generator.config.json`). Output goes to `data/<profile>/csv/`, one file per table.
-Before writing, the run loads every row into an in-memory copy of `sql/schema.sql`, so a
-constraint violation stops it with an error and no files are written. Options:
-`--out <dir>` (default `data`), `--config <file>`.
+(`config/generator.config.json`). Output goes to `data/<profile>/csv/` (one file per table)
+and `data/<profile>/reports/` (`metrics.json`, `metrics.md`). Before writing, the run loads
+every row into an in-memory copy of `sql/schema.sql`, so a constraint violation stops it with an
+error and no files are written. Options: `--out <dir>` (default `data`), `--config <file>`.
 
 | Profile | Teams | Employees | Days | Leave requests | Swap requests |
 | --- | --- | --- | --- | --- | --- |
 | `starter` | 10 | 200 | 28 | 160 | 60 |
 | `full` | 100 | 2,000 | 90 | 5,000 | 1,500 |
 
-Currently generated (Phases 2–3): all 17 source tables. Full profile:
+Currently generated (Phases 2–4): all 21 tables. Full profile:
 
-| Master data | Rows | Transactions and events | Rows |
-| --- | --- | --- | --- |
-| labour policies | 2 | leave requests | 5,000 |
-| skills | 30 | leave request events | 10,089 |
-| teams | 100 | shift assignments | 95,930 |
-| employees | 2,000 | shift assignment events | 98,772 |
-| employee skills | 3,179 | swap requests | 1,500 |
-| leave entitlements | 5,658 | swap request events | 3,522 |
-| shift templates / holidays / shifts | 4 / 5 / 360 | attendance events | 184,535 |
-| coverage requirements | 1,490 | | |
+| Master data | Rows | Transactions and events | Rows | Derived | Rows |
+| --- | --- | --- | --- | --- | --- |
+| labour policies | 2 | leave requests | 5,000 | employee week summary | 25,948 |
+| skills | 30 | leave request events | 10,089 | coverage status | 46,320 |
+| teams | 100 | shift assignments | 95,930 | leave balance | 5,658 |
+| employees | 2,000 | shift assignment events | 98,772 | attendance reconciliation | 93,088 |
+| employee skills | 3,179 | swap requests | 1,500 | | |
+| leave entitlements | 5,658 | swap request events | 3,522 | | |
+| shift templates / holidays / shifts | 4 / 5 / 360 | attendance events | 184,535 | | |
+| coverage requirements | 1,490 | | | | |
 
-A full run takes about 10 s: about 3.5 s to generate, the rest for SQLite to load and
-constraint-check 400,000 rows. The starter profile takes under 1 s.
+A full run takes about 15 s (about 4 s to generate and derive, the rest for SQLite to load and
+constraint-check 570,000 rows) and writes 60 MB. The starter profile takes under 1 s.
 
 Still to come:
 
@@ -167,8 +171,32 @@ seeded input; every **outcome** comes from a numbered rule in
    push a week past contract + overtime cap. *Full profile:* 184,535 events, 1,481 no-shows,
    927 manual corrections.
 
-Fairness at full scale (Jain's index per team, 1.0 = perfectly even): nights 0.977, weekends
-0.948, hours per contracted hour 0.994.
+### Derived tables and metrics
+
+The four derived tables are computed only from the source tables (no randomness), and the
+schema itself re-checks their arithmetic (`gap = max(0, required − qualified)`,
+`remaining = entitled − approved`, overtime flag vs cap):
+
+- **employee_week_summary** — per person and ISO week: contracted hours (prorated to employed
+  days), scheduled, worked, overtime, cap flag.
+- **coverage_status** — per shift × team × skill: required, assigned, qualified, attended,
+  planned gap and gap after absences.
+- **leave_balance** — entitlement − approved days.
+- **attendance_reconciliation** — per worked shift: punches, worked/late/early/extension
+  minutes, outcome (present, no-show, missing punch, no record).
+
+Key metrics for the full profile (`data/full/reports/metrics.md`):
+
+| Metric | Value |
+| --- | --- |
+| M-01 Coverage filled by qualified staff / by staff who clocked in | 99.10 % / 97.52 % |
+| M-02 Short slots · missing headcount-hours | 669 · 6,752 h |
+| M-03 Employee-weeks with overtime · max weekly overtime · cap breaches | 7,371 · 12 h · 0 |
+| M-04 Leave approval rate: annual / casual / sick / unpaid | 63 % / 79 % / 91 % / 81 % |
+| M-05 Swap approval of manager decisions · expiry rate | 41 % · 10.5 % |
+| M-06 Punctuality · no-shows · extensions | 93.1 % · 1.6 % · 9.4 % |
+| M-07 Due shifts with a complete record · worked ÷ scheduled (present) | 99.83 % · 101.4 % |
+| M-08 Fairness (Jain's index, mean across teams): nights / weekends / holidays / hours per contract | 0.977 / 0.948 / 0.907 / 0.994 |
 
 ## 7. Verify
 
@@ -178,7 +206,7 @@ npm run lint
 npm run format:check
 ```
 
-`npm test` (130 tests, about 18 s, most of it generating and loading the full profile) covers:
+`npm test` (147 tests, about 26 s, most of it generating and loading the full profile) covers:
 
 - **Schema:** loads into SQLite and accepts a fully consistent fixture touching all 21 tables;
   enum, rule and lifecycle lists match between code, schema and docs; 17 kinds of broken rows
@@ -207,8 +235,14 @@ npm run format:check
 - **Rule checks catch problems:** double booking, leave overlap, missing skill, overtime cap,
   unapproved swap, rest / consecutive-day / weekly-hour breaches, history without events, and
   attendance on an unworked shift are each injected into a copy of the data and detected.
-- **CLI:** writes one CSV per table with schema-ordered headers; fails cleanly on an unknown
-  profile.
+- **Derived values:** a hand-built fixture with every expected number worked out by hand —
+  overtime (incl. cap breach, partial week, joiner), worked time from punch pairs only,
+  late/early/extension minutes, all reconciliation outcomes, qualified vs attended coverage,
+  gaps, leave balances; Jain's index and percentiles. At full scale: no cap breaches, every due
+  shift reconciled, short slots equal an independent count, no negative balances, metrics add up
+  to the source tables and are reproducible.
+- **CLI:** writes one CSV per table with schema-ordered headers plus `metrics.json` /
+  `metrics.md`; fails cleanly on an unknown profile.
 
 _(Phase 6–7: how to read the validation summary and reproducibility report.)_
 

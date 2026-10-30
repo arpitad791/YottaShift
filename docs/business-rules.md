@@ -398,17 +398,20 @@ and none of the BOUNDARY rows.
 
 ## 5. Metrics
 
-Computed from the tables (Phase 4) and written to `reports/metrics.json`.
+Computed from the tables (Phase 4) by `src/derive/metrics.js` and written to
+`data/<profile>/reports/metrics.json` (with a readable `metrics.md`). Fairness (M-08) uses
+schedulable members employed for the whole window, compared within their team, so joiners and
+leavers do not distort it.
 
 | ID | Metric | Definition |
 | --- | --- | --- |
-| M-01 | Coverage fill rate | Σ min(qualified, required) / Σ required over all (shift, team, skill) |
+| M-01 | Coverage fill rate | Σ min(qualified, required) / Σ required over all (shift, team, skill); also with attended in place of qualified (after absences) |
 | M-02 | Gap volume | Count of `GAP` rows and Σ gap_headcount × shift hours, by team, skill, template, day type |
-| M-03 | Overtime | Total and per-employee overtime hours; count of employee-weeks above the cap |
+| M-03 | Overtime | Total overtime hours, p50 / p90 / max per employee-week with overtime, count of employee-weeks above the cap, scheduled ÷ contracted hours |
 | M-04 | Leave outcomes | Approval rate by leave type; rejections by reason code; share decided by HR |
-| M-05 | Swap outcomes | Approved / rejected / expired / cancelled shares; rejections by reason |
-| M-06 | Attendance quality | Punctuality rate, late rate, early-leave rate, no-show rate, manual-correction rate |
-| M-07 | Reconciliation | Share of due assignments with a complete record; scheduled vs worked hours by team |
+| M-05 | Swap outcomes | Counts by status and type; approval rate of manager decisions; expiry rate; rejections by reason; manager response time p50 / p90 |
+| M-06 | Attendance quality | Outcomes; punctuality, late (> 5 min), early-leave (> 5 min), extension (> 15 min), no-show, missing-punch and manual-correction rates |
+| M-07 | Reconciliation | Share of due assignments with a complete record (punch pair or no-show); scheduled vs worked hours, overall and by operating pattern |
 | M-08 | Fairness | Per team: coefficient of variation of scheduled hours ÷ contracted hours, and Jain's index `(Σx)² / (n·Σx²)` for night, weekend and holiday shift counts across schedulable members (1.0 = perfectly even) |
 | M-09 | Detection quality | Precision and recall per `issue_type` of the validator's detectors against ground truth; false positives on BOUNDARY rows |
 

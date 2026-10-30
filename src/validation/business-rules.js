@@ -5,13 +5,13 @@
 //   kind VIOLATION — a rule is broken; EXCEPTION — an allowed, reported situation
 //   (e.g. an uncorrected missing clock-out).
 
+import { overtimeHours, weekDatesOf, workedMinutes } from '../derive/derived-tables.js';
 import { ENUMS, TRANSITIONS } from '../domain/constants.js';
-import { isoWeek, minutesBetween, timestampMs } from '../lib/dates.js';
+import { minutesBetween, timestampMs } from '../lib/dates.js';
 import { employedDaysInWeek, weeklyLimits } from '../scheduler/roster-state.js';
 
 const SCHEDULABLE = new Set(ENUMS.SCHEDULABLE_ROLE);
 const HOUR_MS = 3_600_000;
-const MINUTE_MS = 60_000;
 
 const finding = (
   ruleId,
@@ -39,8 +39,7 @@ function context(tables) {
   const policies = new Map(tables.labor_policy.map((p) => [p.policy_id, p]));
   const active = tables.shift_assignment.filter((a) => a.status === 'SCHEDULED');
   const activeByEmployee = Map.groupBy(active, (a) => a.employee_id);
-  const windowDates = [...new Set(tables.shift.map((s) => s.shift_date))].sort();
-  const weekDates = Map.groupBy(windowDates, isoWeek);
+  const weekDates = weekDatesOf(tables.shift);
   return { employees, shifts, policies, active, activeByEmployee, weekDates };
 }
 
@@ -301,11 +300,7 @@ function attendanceRules(tables, ctx) {
     if (types === 'CLOCK_IN,CLOCK_OUT') {
       const clockIn = list.find((e) => e.event_type === 'CLOCK_IN').event_at;
       const clockOut = list.find((e) => e.event_type === 'CLOCK_OUT').event_at;
-      const paidStart = clockIn > shift.start_at ? clockIn : shift.start_at;
-      const worked = Math.max(
-        0,
-        Math.floor((timestampMs(clockOut) - timestampMs(paidStart)) / MINUTE_MS),
-      );
+      const worked = workedMinutes(shift, clockIn, clockOut);
       const key = `${a.employee_id}|${shift.iso_week}`;
       const entry = workedByWeek.get(key) ?? {
         minutes: 0,
@@ -327,8 +322,8 @@ function attendanceRules(tables, ctx) {
       policy,
       employedDaysInWeek(emp, weekDates.get(week)),
     );
-    // R-OVT-01: hours rounded to 2 decimals; R-OVT-02: strictly above the cap is a breach.
-    const overtime = Math.round(Math.max(0, (entry.minutes - contractedMinutes) / 60) * 100) / 100;
+    // R-OVT-02: strictly above the cap is a breach.
+    const overtime = overtimeHours(entry.minutes, contractedMinutes);
     if (overtime > policy.weekly_overtime_cap_hours) {
       out.push(
         finding(

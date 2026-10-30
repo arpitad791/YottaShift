@@ -287,6 +287,10 @@ describe('generate CLI', () => {
         assert.equal(lines.length - 1, rows.length, name);
       }
       db.close();
+      const reports = join(out, 'starter', 'reports');
+      assert.deepEqual(readdirSync(reports).sort(), ['metrics.json', 'metrics.md']);
+      const metrics = JSON.parse(readFileSync(join(reports, 'metrics.json'), 'utf8'));
+      assert.equal(metrics.M04_leave.requests, config.profiles.starter.leaveRequests);
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

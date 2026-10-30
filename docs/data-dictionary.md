@@ -52,9 +52,8 @@ IDs are deterministic, zero-padded, immutable and identical in every export (R-G
 ## 3. Table catalogue
 
 Load order is parent first, which is also the generation order (Step 2 of the brief). Volumes
-are exact generated counts for the full profile (seed `20261022`) for tables 1–17; the derived
-tables 18–21 are estimates until Phase 4. Exact counts for every table go into the manifest
-(Phase 7).
+are exact generated counts for the full profile (seed `20261022`) for all 21 tables. Exact
+counts also go into the manifest (Phase 7).
 
 | # | Table | Core entity | Kind | Grain | Primary key | Rows (full) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -75,10 +74,10 @@ tables 18–21 are estimates until Phase 4. Exact counts for every table go into
 | 15 | `attendance_event` | **AttendanceEvent** | event | punch / no-show | `attendance_event_id` | 184,535 |
 | 16 | `swap_request` | **SwapRequest** | transaction | request | `swap_id` | 1,500 |
 | 17 | `swap_request_event` | (history) | event | request status change | `event_id` | 3,522 |
-| 18 | `employee_week_summary` | derived | derived | employee × ISO week | (`employee_id`, `iso_week`) | ~27,000 |
-| 19 | `coverage_status` | derived | derived | shift × team × skill | (`shift_id`, `team_id`, `skill_id`) | ~45,000 |
-| 20 | `leave_balance` | derived | derived | employee × leave type | (`employee_id`, `leave_type`) | 6,000 |
-| 21 | `attendance_reconciliation` | derived | derived | due assignment | `assignment_id` | ~115,000 |
+| 18 | `employee_week_summary` | derived | derived | employee × ISO week | (`employee_id`, `iso_week`) | 25,948 |
+| 19 | `coverage_status` | derived | derived | shift × team × skill | (`shift_id`, `team_id`, `skill_id`) | 46,320 |
+| 20 | `leave_balance` | derived | derived | employee × leave type | (`employee_id`, `leave_type`) | 5,658 |
+| 21 | `attendance_reconciliation` | derived | derived | due assignment | `assignment_id` | 93,088 |
 
 `ground_truth.csv/json` is **not** a table in this database; it is written to a separate folder
 (§10).
@@ -358,10 +357,10 @@ compares (arithmetic reconciliation).
 | `employee_id` | TEXT | Req | schedulable employee | — | PK part | FK → `employee` |
 | `iso_week` | TEXT | Req | `2026-W01` … | — | PK part | ISO week format |
 | `days_in_window` | INTEGER | Req | 1–7 | days | — | Days of that week inside the window and employment |
-| `contracted_hours` | REAL | Req | contracted × days_in_window / 7 | hours | — | ≥ 0 |
+| `contracted_hours` | REAL | Req | contracted × days_in_window / 7, rounded to 2 decimals for display | hours | — | ≥ 0 |
 | `scheduled_hours` | REAL | Req | Σ duration of final `SCHEDULED` assignments | hours | — | ≤ R-SCH-08 limit outside anomalies |
 | `worked_hours` | REAL | Req | Σ worked minutes / 60 (R-ATT-03) | hours | — | ≥ 0 |
-| `overtime_hours` | REAL | Req | R-OVT-01 | hours | — | ≥ 0 |
+| `overtime_hours` | REAL | Req | R-OVT-01, from worked minutes and the unrounded contract | hours | — | ≥ 0 |
 | `overtime_cap_hours` | REAL | Req | from `labor_policy` | hours | — | ≥ 0 |
 | `is_overtime_cap_exceeded` | BOOLEAN | Req | 0 / 1 | — | — | = `overtime_hours > overtime_cap_hours` |
 
@@ -374,7 +373,7 @@ compares (arithmetic reconciliation).
 | `required_headcount` | INTEGER | Req | R-COV-01 | people | — | ≥ 0 |
 | `assigned_headcount` | INTEGER | Req | final `SCHEDULED` assignments | people | — | ≥ qualified |
 | `qualified_headcount` | INTEGER | Req | assigned **and** holding the skill | people | — | ≤ assigned |
-| `attended_headcount` | INTEGER | Req | qualified people with outcome `PRESENT` | people | — | ≥ 0 |
+| `attended_headcount` | INTEGER | Req | qualified people who clocked in (outcome `PRESENT` or `MISSING_PUNCH`) | people | — | ≥ 0 |
 | `gap_headcount` | INTEGER | Req | max(0, required − qualified) | people | — | Schema-checked |
 | `attended_gap_headcount` | INTEGER | Req | max(0, required − attended) | people | — | Schema-checked |
 | `status` | TEXT | Req | `MET`, `GAP` | — | — | `GAP` **iff** `gap_headcount > 0` |

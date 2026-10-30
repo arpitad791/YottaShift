@@ -16,7 +16,7 @@ traceability matrix and the change log at the end of every phase.
 | Build | Fully local, no paid or hosted services |
 | Stack | Node.js 24 (ESM) · Express 5 · React 19 + Vite · SQLite (built-in `node:sqlite`) · `node:test` · ESLint + Prettier |
 | Fixed seed | `20261022` |
-| Current phase | Phase 3 — done; next: Phase 4 |
+| Current phase | Phase 4 — done; next: Phase 5 |
 
 ## 2. Working agreement
 
@@ -37,8 +37,8 @@ traceability matrix and the change log at the end of every phase.
 | 1 | Domain design & data dictionary | data dictionary (all 10 entities + supporting tables), ERD + cardinality, lifecycle state machines, business-rule catalogue, `sql/schema.sql`, enum constants | ✅ Done |
 | 2 | Generator core & master data | seeded RNG, ID helpers, scale profiles, LaborPolicy, Team, Skill, Employee, EmployeeSkill, LeaveEntitlement, ShiftTemplate, HolidayCalendar, Shift, CoverageRequirement | ✅ Done |
 | 3 | Transactions & events | LeaveRequest + rule-based decisions, scheduler (ShiftAssignment), AttendanceEvent, SwapRequest with manager approval — all with event history | ✅ Done |
-| 4 | Derived values & metrics | overtime, leave balances, coverage gaps, attendance reconciliation, fairness scores — computed from source records | ⏳ Next |
-| 5 | Edge-case injection & ground truth | 5 required anomaly types + boundary cases, `ground_truth.csv/json` kept separate | ⬜ |
+| 4 | Derived values & metrics | overtime, leave balances, coverage gaps, attendance reconciliation, fairness scores — computed from source records | ✅ Done |
+| 5 | Edge-case injection & ground truth | 5 required anomaly types + boundary cases, `ground_truth.csv/json` kept separate | ⏳ Next |
 | 6 | Validation & evaluation | integrity checks, rule detectors, detector-vs-ground-truth scoring, validation summary | ⬜ |
 | 7 | Export & reproducibility | CSV / JSON / SQL seed / SQLite DB, source manifest with checksums, two-run reproducibility proof | ⬜ |
 | 8 | Express API | read endpoints for schedules, gaps, exceptions, history; manager actions append events | ⬜ |
@@ -112,17 +112,19 @@ Verified 2026-10-30: `npm test` 130/130 (≈ 18 s); lint and format clean; two i
 Fixed during the phase: (1) swap counterparts were picked without regard to their own shifts, so 531 of 1,499 swaps failed on double booking — requesters now usually ask an available colleague (configurable), approval of decided swaps rose to 41 %; (2) a raw weekly-load ratio made nights/weekends irrelevant in the fairness key — banded at 20 %, night fairness 0.971 → 0.977; (3) one swap request could not be placed near the window end — target day now clipped to the window; (4) full load took 16.7 s because deferred-FK checks scanned unindexed child columns — two indexes brought the run to ≈ 10.5 s.
 Suggested commit: `feat(generator): leave decisions, scheduler, attendance and swap workflow with event history`
 
-### Phase 4 — Derived values & metrics
+### Phase 4 — Derived values & metrics ✅
 
-- [ ] Overtime per employee-week from attendance (worked − contracted), capped-vs-actual comparison
-- [ ] Leave balances: entitlement − approved days (per type), reconciled with leave records
-- [ ] Coverage per shift × team × skill: required vs assigned vs attended → gap records
-- [ ] Attendance reconciliation: every worked assignment has matching events; scheduled vs actual hours; absences classified
-- [ ] Fairness: per-team spread of hours, night/weekend/holiday shifts (std-dev, Jain's index)
-- [ ] KPI set M-01 … M-09 ([business rules §5](docs/business-rules.md#5-metrics)) written to `reports/metrics.json`
-- [ ] Tests: hand-computed fixtures for overtime, balances and gaps
+- [x] [`src/derive/derived-tables.js`](src/derive/derived-tables.js) — pure functions of the source tables: `employee_week_summary` (contract prorated to employed days, scheduled, worked from punch pairs, overtime R-OVT-01, cap flag R-OVT-02), `coverage_status` (R-COV-01 lookup; assigned / qualified / attended; planned gap and gap after absences), `leave_balance` (entitlement − final APPROVED days), `attendance_reconciliation` (punches, worked / late / early / extension minutes, outcome)
+- [x] One implementation of worked time and overtime (`workedMinutes`, `overtimeHours`), now also used by the rule checks, so derived tables and detectors cannot disagree
+- [x] [`src/derive/metrics.js`](src/derive/metrics.js): M-01 … M-08 (coverage fill planned and attended; gaps by template / day type / function / worst teams; overtime distribution and breaches; leave and swap outcomes, approval rates, response times; attendance rates; reconciliation by pattern; fairness per team — Jain's index for nights, weekends, holidays, hours per contract, and CV)
+- [x] [`src/export/reports.js`](src/export/reports.js): `data/<profile>/reports/metrics.json` + readable `metrics.md`; no timestamps, so reports are reproducible
+- [x] `generateDataset` now returns all 21 tables; the schema's CHECKs re-verify derived arithmetic on load
+- [x] Tests — 17 new ([`derive.test.js`](test/derive.test.js)) on a hand-built fixture with every expected value worked out by hand (overtime incl. breach, partial week, joiner; worked time only from punch pairs; all reconciliation outcomes; qualified vs attended coverage; balances; Jain / percentiles) and on the full profile (no cap breaches, every due shift reconciled, short slots = independent count, no negative balances, metrics add up and are reproducible); CLI test checks the report files
 
-Exit criteria: every derived value recomputes identically from source tables. Suggested commit: `feat: derived overtime, balances, coverage gaps and fairness metrics`
+Results (full profile): coverage 99.10 % filled by qualified staff, 97.52 % by staff who clocked in; 669 short slots, 6,752 missing headcount-hours, worst team TEAM-031 (Field Service BLR 04); 7,371 employee-weeks with overtime, max 12 h, 0 breaches; scheduled hours 83.4 % of contracted; leave approval annual 63 % / casual 79 % / sick 91 % / unpaid 81 %; swap approval 41 %, expiry 10.5 %, manager response p50 7.9 h; punctuality 93.1 %, no-shows 1.6 %; 99.83 % of due shifts with a complete record; fairness nights 0.977, weekends 0.948, holidays 0.907, hours per contract 0.994.
+Verified 2026-10-30: `npm test` 147/147 (≈ 26 s); lint and format clean; two independent runs of both profiles byte-identical (46/46 files incl. reports); full output 59.7 MB.
+Fixed during the phase: one hand-computed expectation in the new fixture was wrong (it missed that E1 also worked that day); the code was right, the fixture was corrected to keep a genuine "unqualified assignee → gap" case.
+Suggested commit: `feat(derive): derived overtime, coverage, balances, reconciliation and metrics`
 
 ### Phase 5 — Edge-case injection & ground truth
 
@@ -200,7 +202,7 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | B-01 | Combine leave, shift coverage, skills and labour constraints into fair and feasible schedules | 3, 4 | ✅ scheduler combines approved leave, coverage per skill, skill validity and labour limits; fairness key + Jain indices (nights 0.977, hours 0.994) · metrics Phase 4 |
 | B-02 | Expose key decisions and exceptions | 3, 6, 8, 9 | ✅ decision rule ID + reason on every leave/swap decision; exceptions (gaps, missing punches) reported · reports Phase 6, UI Phase 9 |
 | B-03 | Preserve traceability | 1, 3 | ✅ append-only events for leave (10,089), swaps (3,522), assignments (98,772); `supersedes_assignment_id` and `swap_id` links |
-| B-04 | Measurable outputs | 4, 6 | `metrics.json`, `validation_summary` |
+| B-04 | Measurable outputs | 4, 6 | ✅ 4 derived tables + `metrics.json` / `metrics.md` (M-01 … M-08) · validation summary Phase 6 |
 | B-05 | Medium complexity: multiple related entities, conditional rules, ≥1 exception path, meaningful evaluation metrics | 1, 3, 6 | ✅ 21 tables, 42 rules, exception paths in data (rejections, expiries, cancellations, backfills, gaps, no-shows, missing punches) · metrics Phases 4/6 |
 | B-06 | Actors: employee, manager, HR partner, IT/ops partner, system administrator | 1, 9 | ✅ actor matrix in business-rules §1 (incl. Workforce Office for HR/ops partners) · dashboard views Phase 9 |
 | W-01 | Master data first: Employee, Team, Skill, ShiftTemplate, ShiftAssignment | 2, 3 | ✅ master data first, then transactions (`generateDataset`) |
@@ -211,7 +213,7 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | W-06 | Attendance events | 3 | ✅ 184,535 attendance events (punches, no-shows, manual corrections) |
 | W-07 | Assign shifts | 3 | ✅ weekly rosters, 95,930 assignments incl. backfills and swap-created |
 | W-08 | Swaps with manager approval | 3 | ✅ 1,500 swaps: manager approval/rejection, system expiry, requester cancellation, applied swaps |
-| W-09 | Overtime and coverage gaps computed | 4 | derived tables |
+| W-09 | Overtime and coverage gaps computed | 4 | ✅ `employee_week_summary` (overtime) and `coverage_status` (gaps) recomputed from source |
 | W-10 | State changes as explicit records/events; never overwrite history | 1, 3 | ✅ status changes only as appended events; status = last event (checked) |
 | W-11 | Outcomes and ground-truth labels from documented rules, not random | 1, 3, 5 | ✅ outcomes from rules with rule IDs; leave decisions replayable (`decideLeaves` is pure) · ground truth Phase 5 |
 | E-01 | All 10 core entities present | 1 | ✅ data-dictionary §3 + schema.sql |
@@ -230,7 +232,7 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | S-05 | Step 4 public holidays, absences, overtime caps, skill-specific staffing | 2, 3 | ✅ 5 holidays; absences (approved leave, sick call-ins, 1,481 no-shows); overtime caps enforced; skill-specific staffing |
 | S-06 | Step 4 fixed seed 20261022; same generator for starter and full | 2 | ✅ seed `20261022`; `starter` and `full` profiles through one generator; byte-identical reruns |
 | S-07 | Step 5 valid baseline first, then labelled edge cases | 3, 5 | ✅ clean baseline has zero violations (tested) · labelled injection Phase 5 |
-| S-08 | Step 6 derived values computed from source records | 4 | derive/ + reconciliation checks |
+| S-08 | Step 6 derived values computed from source records | 4 | ✅ `src/derive/derived-tables.js` — pure functions of the source tables; schema CHECKs re-verify the arithmetic · reconciliation of exported files Phase 6 |
 | S-09 | Step 7 separate ground_truth.csv/json, no leakage | 5 | ground_truth/, leakage test |
 | S-10 | Step 8 validation: PK, FK, enums, date ordering, arithmetic reconciliation, lifecycle transitions, duplicates | 6 | validation_summary |
 | S-11 | Step 9 export CSV/JSON/SQL seed + README, schema/dictionary, generator command, seed, source manifest, validation summary | 7 | output folder |
@@ -240,14 +242,14 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | X-03 | Edge case: required skill absent | 5, 6 | ✅ detector `R-SCH-03` (proven on injected copy) · labelled injection Phase 5 |
 | X-04 | Edge case: overtime cap exceeded | 5, 6 | ✅ detector `R-OVT-02` (proven on injected copy) · labelled injection Phase 5 |
 | X-05 | Edge case: swap applied without approval | 5, 6 | ✅ detector `R-SWP-06` (proven on injected copy) · labelled injection Phase 5 |
-| A-01 | Coverage requirements met or gaps reported | 4, 6 | ✅ unfilled demand left as gaps (669 short slots, never filled unqualified) · coverage_status report Phase 4 |
+| A-01 | Coverage requirements met or gaps reported | 4, 6 | ✅ `coverage_status`: 669 short slots reported, never filled unqualified; M-01 / M-02 |
 | A-02 | Working-hour constraints hold | 3, 6 | ✅ rest, consecutive-day, weekly-hour and overtime-cap rules hold in the baseline (tested) |
-| A-03 | Attendance reconciles with schedules | 4, 6 | ✅ every worked assignment has a punch pair or no-show; uncorrected missing punches reported as exceptions · reconciliation table Phase 4 |
+| A-03 | Attendance reconciles with schedules | 4, 6 | ✅ `attendance_reconciliation`: 99.83 % complete records, 0 with no record; M-07 |
 | A-04 | Swap history preserved | 3, 6 | ✅ swap event chains + links from swaps to old/new assignments (tested) |
 | V-01 | Realistic distributions and meaningful variation | 2, 3 | ✅ master + transactions: leave/swap outcome mixes, lateness, no-shows, fairness spread (Phase 3 results) |
 | V-02 | Consistent IDs and valid joins | 6 | FK report |
 | V-03 | Dependency/lifecycle consistency across entities | 6 | ✅ lifecycle chains checked for all three event tables; rosters published before their week |
-| V-04 | Correct derived values and reconciliation | 4, 6 | reconciliation checks |
+| V-04 | Correct derived values and reconciliation | 4, 6 | ✅ derived values tested against hand-computed fixtures and independent recounts · file-level reconciliation Phase 6 |
 | V-05 | Normal, boundary, failure and exception coverage | 5, 6 | ground truth incl. boundary labels |
 | V-06 | Separate ground truth | 5 | ground_truth/ |
 | V-07 | Fixed-seed reproducibility, documentation, lawful provenance | 7, 10 | reproducibility.md, README, manifest provenance |
@@ -314,14 +316,14 @@ YottaFlex.ai/  (repo: YottaShift)
 │   ├── domain/             # ✅ constants.js (enums, transitions, ID patterns), rules.js (rule catalogue, policy)
 │   ├── generator/          # ✅ config.js, master/ (10 master tables), transactions/ (leave, timeline, attendance), index.js
 │   ├── scheduler/          # ✅ roster-state.js (hard rules, fairness key), scheduler.js (weekly publication)
-│   ├── derive/             # overtime, balances, coverage gaps, fairness
+│   ├── derive/             # ✅ derived-tables.js (4 derived tables), metrics.js (M-01 … M-08)
 │   ├── validation/         # ✅ business-rules.js (detectors) · integrity checks + evaluation in Phase 6
-│   ├── export/             # ✅ csv-export.js · JSON, SQL seed, SQLite DB, manifest in Phase 7
+│   ├── export/             # ✅ csv-export.js, reports.js (metrics) · JSON, SQL seed, SQLite DB, manifest in Phase 7
 │   ├── db/                 # ✅ database.js (open DB with schema, insert rows)
 │   ├── api/                # Express app
 │   └── cli/                # ✅ generate.js · validate / reproduce later
 ├── client/                 # React + Vite dashboard (workspace)
-├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions tests
+├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive tests
 ├── data/                   # ✅ starter/csv committed as sample; full/ git-ignored
 └── ai-disclosure/          # prompt history and AI-usage notes
 ```
@@ -360,6 +362,10 @@ YottaFlex.ai/  (repo: YottaShift)
 | D-28 | 2026-10-30 | Business-rule checks written in Phase 3, reading only exported tables | Proves the baseline is clean now; the same detectors grade injected anomalies in Phase 6 | Write detectors only in Phase 6 |
 | D-29 | 2026-10-30 | Indexes on FK child columns (`shift_assignment.swap_id`, `supersedes_assignment_id`, `team.hr_partner_employee_id`) | Deferred-FK checks were scanning 95k rows per parent insert: full run 16.7 s → ≈ 10.5 s (load 12.7 s → 7.0 s) — the measured optimisation for Phase 10 | Disable FK checks during load (loses the guarantee) |
 | D-30 | 2026-10-30 | Refused sick call-ins become no-shows; approved ones cancel the shift | The person is still ill; keeps absences explainable from the data | Treat refused sick leave as present |
+| D-31 | 2026-10-30 | Derived tables are pure functions of the source tables, kept in one module with the worked-time / overtime arithmetic shared by the rule checks | One definition of each number; the validator can recompute and compare exported files | Compute during generation (derived values could drift from the records) |
+| D-32 | 2026-10-30 | "Attended" = a qualified assignee who clocked in (present or missing clock-out) | A missing clock-out still means the person turned up; it is an attendance data exception, not a coverage gap | Count only complete punch pairs |
+| D-33 | 2026-10-30 | Fairness measured among members employed for the whole window, within their team | Joiners and leavers have fewer shifts by design and would distort the index | All members, or org-wide comparison |
+| D-34 | 2026-10-30 | Metrics written as JSON plus a readable Markdown summary, with no timestamps | Machine-checkable and reviewer-friendly; stays byte-reproducible | JSON only |
 
 ## 9. Open questions & assumptions
 
@@ -368,7 +374,7 @@ YottaFlex.ai/  (repo: YottaShift)
 | Q-01 | Dedicated repo needed (folder sat inside the home-directory repo). | ✅ Resolved — candidate ran `git init`, remote `arpitad791/YottaShift` |
 | Q-02 | Prompt history: FAQ #6 asks for **all** prompts submitted to every AI tool. The final content of `ai-disclosure/prompt-history.md` is the candidate's call. | Waiting on user |
 | Q-03 | 72-hour window start/deadline not yet recorded in §1. | Waiting on user |
-| Q-04 | Whether the full-profile output is committed or regenerated on demand (decide in Phase 7). Full CSV output is 45 MB across 17 files (largest: attendance). `data/full/` is git-ignored for now; `data/starter/` is committed as the sample. | Open |
+| Q-04 | Whether the full-profile output is committed or regenerated on demand (decide in Phase 7). Full output is 59.7 MB (21 CSVs + reports; largest: attendance). `data/full/` is git-ignored for now; `data/starter/` is committed as the sample. | Open |
 | A-01 | ShiftAssignment is treated as the published master roster; later changes are events. | Assumed |
 | A-02 | A `shift` table (date × template) makes `SHIFT-2026-01-01-A` a real key (D-10). | Assumed |
 | A-03 | Each employee belongs to one team for the whole window; team transfers are out of scope. | Assumed |
@@ -395,3 +401,4 @@ YottaFlex.ai/  (repo: YottaShift)
 | 2026-10-30 | 1 | Named the project YottaShift. Wrote data dictionary, ERD, business rules (42 rules, lifecycles, anomalies, metrics), `sql/schema.sql` (21 STRICT tables), domain constants and rule catalogue, DB helper and 25 schema tests. Added the Workforce Office team and HR/ops partner links for traceability. Decisions D-07 … D-16, assumptions A-03 … A-10 |
 | 2026-10-30 | 2 | Seeded RNG, date/ID/CSV/allocation helpers; strict generator config with starter and full profiles; master-data generators for all 10 master tables (Workforce Office, demand sized from supply, lapsing certifications, revisions); `npm run generate`; 61 new tests (86 total). Fixed the coverage-revision rule after a capacity test failed. Decisions D-17 … D-22, assumptions A-11 … A-13 |
 | 2026-10-30 | 3 | Leave requests + replayable decision engine; roster state, fair scheduler, weekly publication, late-leave backfill, swap workflow, attendance; business-rule checks; all 17 source tables generated (≈ 400k rows at full scale); 44 new tests (130 total). Schema: deferred swap FK, `ASSIGNMENT_CHANGED`, FK child indexes. Fixed swap counterpart realism, fairness banding, end-of-window swap placement and load performance. Decisions D-23 … D-30, assumptions A-14 … A-17 |
+| 2026-10-30 | 4 | Derived tables (week summary, coverage status, leave balance, attendance reconciliation) and metrics M-01 … M-08 with JSON + Markdown reports; shared worked-time/overtime arithmetic; 17 new tests (147 total). Decisions D-31 … D-34 |
