@@ -27,19 +27,19 @@ function collector(id, name) {
   };
 }
 
-export function replayLeaveDecisions(t) {
-  const c = collector(
-    'D-01',
-    'Leave decisions replay exactly from the rules (R-LVE-01 … R-LVE-07)',
-  );
+/**
+ * Rebuilds the decision engine's input from exported tables: timings from the rows, withdrawal
+ * and cancellation times from the events. Leave IDs follow submission order, which is also the
+ * generator's tie-break order.
+ */
+export function leaveRequestsFromTables(t) {
   const employees = new Map(t.employee.map((e) => [e.employee_id, e]));
   const events = Map.groupBy(t.leave_request_event, (e) => e.leave_request_id);
   const eventAt = (id, status) => {
     const event = (events.get(id) ?? []).find((e) => e.to_status === status);
     return event ? timestampMs(event.event_at) : null;
   };
-  // Leave IDs follow submission order, which is the generator's tie-break order too.
-  const requests = t.leave_request.map((l, seq) => ({
+  return t.leave_request.map((l, seq) => ({
     seq,
     row: l,
     employee: employees.get(l.employee_id),
@@ -52,11 +52,24 @@ export function replayLeaveDecisions(t) {
     withdrawnMs: eventAt(l.leave_request_id, 'WITHDRAWN'),
     cancelledMs: eventAt(l.leave_request_id, 'CANCELLED'),
   }));
-  const decisions = decideLeaves(
+}
+
+/** Runs the leave rule engine over requests built by leaveRequestsFromTables (plus any extra). */
+export function decideFromTables(t, requests) {
+  return decideLeaves(
     requests,
     leaveContext({ teams: t.team, employees: t.employee, entitlementRows: t.leave_entitlement }),
-    (request) => request.cancelledMs,
+    (request) => request.cancelledMs ?? null,
   );
+}
+
+export function replayLeaveDecisions(t) {
+  const c = collector(
+    'D-01',
+    'Leave decisions replay exactly from the rules (R-LVE-01 … R-LVE-07)',
+  );
+  const requests = leaveRequestsFromTables(t);
+  const decisions = decideFromTables(t, requests);
   for (const request of requests) {
     const d = decisions.get(request);
     const row = request.row;

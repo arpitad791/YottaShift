@@ -17,6 +17,9 @@ data/full/*
 !data/full/reports/
 !data/full/ground_truth/
 
+# Exception reviews written by the API (live, per machine; not part of the dataset)
+data/*/api/
+
 # SQLite side files
 *.db-journal
 *.db-wal

@@ -11,6 +11,7 @@
     "generate": "node src/cli/generate.js",
     "validate": "node src/cli/validate.js",
     "reproduce": "node src/cli/reproduce.js",
+    "api": "node src/cli/api.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -21,5 +22,8 @@
     "eslint": "^10.13.0",
     "globals": "^17.13.0",
     "prettier": "^3.9.10"
+  },
+  "dependencies": {
+    "express": "5.2.1"
   }
 }

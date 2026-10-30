@@ -7,11 +7,11 @@ workflow that combine **leave requests, shift coverage, skills and labour constr
 and feasible schedules, expose every key decision and exception, keep full history, and produce
 measurable outputs.
 
-> **Status:** Phases 0–7 complete: setup, domain design and schema, master data, the
+> **Status:** Phases 0–8 complete: setup, domain design and schema, master data, the
 > transaction workflow (leave, scheduling, swaps, attendance), derived values with metrics,
 > labelled anomalies with a separate ground truth, file-level validation with evaluation
-> against that ground truth, and CSV / JSON / SQL / SQLite exports with a checksummed manifest
-> and a two-run reproducibility check. Phase-by-phase progress lives in
+> against that ground truth, CSV / JSON / SQL / SQLite exports with a checksummed manifest and a
+> two-run reproducibility check, and a local Express API. Phase-by-phase progress lives in
 > [tracking.md](tracking.md). Sections marked _(Phase N)_ are filled in as that phase lands.
 
 ---
@@ -51,7 +51,7 @@ truth, validation, and fixed-seed reproducibility.
 | --- | --- | --- |
 | Runtime | Node.js 24 (ES modules) | One language across generator, API and UI |
 | Storage | SQLite via built-in `node:sqlite` | PK/FK and join validation, SQL seed export, no server to install |
-| API | Express 5 _(Phase 8)_ | Small, familiar |
+| API | Express 5.2.1 (the only runtime dependency) | Small, familiar; Express 5 forwards thrown errors to one handler |
 | UI | React 19 + Vite _(Phase 9)_ | Dashboard for decisions and exceptions |
 | Tests | `node:test` | Built in, no extra dependency |
 | Quality | ESLint 10, Prettier 3 | Lint + consistent formatting |
@@ -71,8 +71,8 @@ src/scheduler/   roster state (hard rules, fairness key) and the weekly schedule
 src/derive/      derived tables (overtime, coverage, balances, reconciliation) and metrics
 src/validation/  file reader, integrity checks, decision replay, detectors, evaluation, summary
 src/export/      CSV, JSON, SQL seed, SQLite DB, manifest, reports
-src/db/          SQLite access for the API
-src/api/         Express app
+src/db/          schema loading, table I/O, load order
+src/api/         Express app: dataset store, routes, HTTP helpers
 src/cli/         generate / validate / reproduce entry points
 client/          React dashboard
 test/            unit and integration tests
@@ -152,11 +152,46 @@ npm run validate -- --profile full
 npm run reproduce -- --profile full
 ```
 
+### API
+
+```bash
+npm run api -- --profile full
+```
+
+Serves `data/<profile>/` at `http://localhost:3001/api` (options: `--port`, `--data`). It opens
+the dataset's SQLite file **read-only**, so the published files and their checksums never
+change; at full scale the exception list is warmed in the background a few seconds after
+start-up. All errors use one shape: `{ "error": { "code", "message" } }` (400 bad parameter or
+ID format, 403 wrong reviewer, 404 unknown ID or route, 422 not applicable). Lists take
+`limit` (1–500, default 50) and `offset`, and return `{ data, page: { limit, offset, total } }`.
+
+| Method & path | Returns | For |
+| --- | --- | --- |
+| `GET /health` | Profile, seed, window, row counts, ground-truth counts | admin |
+| `GET /metrics`, `GET /validation` | `metrics.json`, `validation_summary.json` | admin, HR |
+| `GET /skills`, `GET /teams`, `GET /teams/:teamId` | Teams with manager, HR partner, members, requirements, coverage totals | manager, HR |
+| `GET /employees?teamId&role&employmentType&q`, `GET /employees/:employeeId` | Employee with skills, leave balances, weekly hours and overtime | manager, HR, employee |
+| `GET /employees/:employeeId/schedule?from&to` | Every assignment with shift times, status, history links and attendance outcome | employee, manager |
+| `GET /coverage?date&teamId&skillId&status`, `GET /coverage/daily?teamId` | Coverage per shift × team × skill (gaps), and per-day totals for charts | manager, ops |
+| `GET /assignments/:assignmentId` | Assignment with its events, punches, reconciliation, and what it replaced / was replaced by | manager, ops |
+| `GET /leave?status&type&reason&teamId&employeeId`, `GET /leave/:id` | Leave with decision rule, full event history and the roster changes it caused | employee, manager, HR |
+| `POST /leave/evaluate` | **What-if:** the decision the rules would give a new request (status, rule, reason, decider, balance); nothing is stored | employee, HR |
+| `GET /swaps?status&type&reason&teamId`, `GET /swaps/:id` | Swap with decision rule, events, and the assignments it moved and created | employee, manager |
+| `GET /exceptions?ruleId&issueType&kind&teamId&employeeId&reviewStatus`, `GET /exceptions/summary`, `GET /exceptions/:findingId` | Business-rule findings with stable IDs, ground-truth match and review trail | manager, HR, ops |
+| `POST /exceptions/:findingId/reviews` | Append a review (`ACKNOWLEDGED` / `RESOLVED` / `DISMISSED`, note) by the team's manager or HR partner, or an ops partner for attendance / overtime findings | manager, HR, ops |
+| `GET /ground-truth?labelClass` | The labels, for comparing detections | admin |
+
+Reviews are the only write. They are appended (never edited) to a separate database,
+`data/<profile>/api/reviews.db`, which is git-ignored and is not part of the dataset. Leave
+and swap requests cannot be approved through the API, because the dataset is a closed
+snapshot: every request is already resolved by its documented rule, and changing one would
+rewrite history and break the published checksums.
+
 Still to come:
 
 | Command | Does | Phase |
 | --- | --- | --- |
-| `npm run api` / `npm run client` | Local API and dashboard | 8–9 |
+| `npm run client` | Local dashboard | 9 |
 
 ### How the master data is generated
 
@@ -273,7 +308,7 @@ npm run lint
 npm run format:check
 ```
 
-`npm test` (201 tests, about 40 s, most of it generating and loading the full profile) covers:
+`npm test` (222 tests, about 40 s, most of it generating and loading the full profile) covers:
 
 - **Schema:** loads into SQLite and accepts a fully consistent fixture touching all 21 tables;
   enum, rule and lifecycle lists match between code, schema and docs; 17 kinds of broken rows
@@ -326,6 +361,14 @@ npm run format:check
   when one JSON value is changed; manifest comparison reports changed checksums, missing files
   and a different seed; `npm run reproduce` reports IDENTICAL and exits 1 when the published
   manifest disagrees.
+- **API (21 tests, against a freshly generated starter dataset):** health, metrics, teams and
+  team detail, employee paging / filters / search and detail; schedules in time order with
+  attendance; coverage gaps equal to the derived table and daily totals; assignment, leave and
+  swap histories with their links; what-if outcomes (approval, balance and notice rejections,
+  input validation, managers refused, malformed JSON); 15 labelled findings listed with
+  ground-truth IDs; reviews by the team manager and an ops partner accepted and kept in order,
+  other managers and wrong roles refused; the dataset file's SHA-256 unchanged after reviews;
+  404 / 400 error shapes.
 - **CLI:** writes one CSV per table with schema-ordered headers, `metrics.json` / `metrics.md`,
   and the ground truth in its own folder (never next to the CSVs); fails cleanly on an unknown
   profile.

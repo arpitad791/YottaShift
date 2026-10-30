@@ -44,6 +44,13 @@ export function createDatabase(path = ':memory:') {
   return db;
 }
 
+/** Every table of an open database as { table: rows }, in insertion (= export) order. */
+export function readAllTables(db) {
+  return Object.fromEntries(
+    LOAD_ORDER.map((table) => [table, db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()]),
+  );
+}
+
 /** Map of every table in LOAD_ORDER → its column names in schema order. */
 export function schemaColumns() {
   const db = createDatabase();

@@ -16,7 +16,7 @@ traceability matrix and the change log at the end of every phase.
 | Build | Fully local, no paid or hosted services |
 | Stack | Node.js 24 (ESM) · Express 5 · React 19 + Vite · SQLite (built-in `node:sqlite`) · `node:test` · ESLint + Prettier |
 | Fixed seed | `20261022` |
-| Current phase | Phase 7 — done; next: Phase 8 |
+| Current phase | Phase 8 — done; next: Phase 9 |
 
 ## 2. Working agreement
 
@@ -41,8 +41,8 @@ traceability matrix and the change log at the end of every phase.
 | 5 | Edge-case injection & ground truth | 5 required anomaly types + boundary cases, `ground_truth.csv/json` kept separate | ✅ Done |
 | 6 | Validation & evaluation | integrity checks, rule detectors, detector-vs-ground-truth scoring, validation summary | ✅ Done |
 | 7 | Export & reproducibility | CSV / JSON / SQL seed / SQLite DB, source manifest with checksums, two-run reproducibility proof | ✅ Done |
-| 8 | Express API | read endpoints for schedules, gaps, exceptions, history; manager actions append events | ⏳ Next |
-| 9 | React dashboard | manager / HR / ops views of coverage, exceptions, swaps, leave, metrics | ⬜ |
+| 8 | Express API | read endpoints for every entity with full histories; exception reviews (append-only, separate store); leave what-if on the real rule engine | ✅ Done |
+| 9 | React dashboard | manager / HR / ops views of coverage, exceptions, swaps, leave, metrics | ⏳ Next |
 | 10 | Hardening, docs & submission | full-scale timing, clean-clone run, final README, design notes, AI disclosure, submission checklist | ⬜ |
 
 Suggested order of priority if time runs short: Phases 1–7 are the graded core (data generation,
@@ -169,14 +169,20 @@ Results: starter — 48 files, 12.3 MB, ≈ 1 s; full — 48 files, 391 MB (CSV 
 Verified 2026-10-30: `npm test` 201/201 (≈ 37 s); lint and format clean.
 Suggested commit: `feat(export): JSON, SQL seed and SQLite exports, manifest and reproducibility check`
 
-### Phase 8 — Express API
+### Phase 8 — Express API ✅
 
-- [ ] `src/api`: Express 5 app over the SQLite DB; read endpoints for teams, employees, schedules, coverage gaps, exceptions, leave, swaps (with event history), metrics, validation summary
-- [ ] Manager actions (approve / reject swap or leave) append events and re-run the affected checks — never update history in place
-- [ ] Input validation, consistent error format, pagination for large tables
-- [ ] Tests: endpoint tests with `node:test` against the starter DB
+- [x] `npm run api -- --profile <name> [--port 3001]` ([`src/cli/api.js`](src/cli/api.js)); Express 5.2.1 (exact pin; the project's only runtime dependency); app factory [`src/api/app.js`](src/api/app.js) with one error shape and JSON body limit
+- [x] [`src/api/store.js`](src/api/store.js): the dataset's SQLite file opened **read-only**; tables loaded once on demand; business-rule findings computed once, given stable IDs (`FND-` + hash of rule + records) and matched to the ground truth; cache warmed after start-up
+- [x] Read endpoints ([`routes/`](src/api/routes/)): health, metrics, validation, skills, teams (+ detail with members, requirements, coverage totals), employees (paged, filters, search; detail with skills, balances, weekly hours), employee schedule, coverage cells and daily totals, assignment history (events, punches, reconciliation, supersede links), leave and swap lists and details with rule text, event history and roster effects / created assignments, ground truth
+- [x] Exceptions: list with filters (rule, issue type, kind, team, employee, review status), summary, detail with label and review trail; `POST /exceptions/:findingId/reviews` appends ACKNOWLEDGED / RESOLVED / DISMISSED by the team's manager or HR partner (ops partners for attendance / overtime findings) to `data/<profile>/api/reviews.db` — git-ignored, never part of the dataset
+- [x] `POST /leave/evaluate`: the decision the real leave engine (R-LVE-01 … R-LVE-07) would give a new request against everything recorded, with rule, reason, decider and balance; nothing stored. Shares `leaveRequestsFromTables` / `decideFromTables` with validation D-01
+- [x] Input validation: ID formats, enums, real dates, pagination bounds, body fields; 400 / 403 / 404 / 422 with a consistent body
+- [x] Tests — 21 new ([`api.test.js`](test/api.test.js)) against a freshly generated starter dataset on a random port (see README §7)
 
-Exit criteria: API tests pass. Suggested commit: `feat(api): Express endpoints for schedules, exceptions and approvals`
+Scope change from the plan: approving / rejecting leave or swaps through the API was dropped (D-51). The dataset is a closed snapshot in which every request is already decided by its rule; an approval endpoint would rewrite history and invalidate the published checksums. Exception reviews and the leave what-if give managers, HR and ops a real action and an explanation tool instead.
+Results (full profile): reads 3–60 ms; first exceptions computation ≈ 5.4 s (now done in the background at start-up), then ≈ 6 ms; what-if ≈ 0.2 s (replays all 5,000 decisions); findings listed: 25 for the starter, 280 for the full profile (100 labelled anomalies, 20 per type; 20 R-SWP-08 side effects, all on labelled swaps; 160 uncorrected missing-punch exceptions).
+Verified 2026-10-30: `npm test` 222/222 (≈ 36 s); lint and format clean; CLI started as a child process, `/health` answered, stopped; dataset files unchanged (SHA-256 test).
+Suggested commit: `feat(api): Express API for schedules, coverage, histories, exceptions and leave what-if`
 
 ### Phase 9 — React dashboard
 
@@ -211,11 +217,11 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | ID | Requirement | Phase | Evidence |
 | --- | --- | --- | --- |
 | B-01 | Combine leave, shift coverage, skills and labour constraints into fair and feasible schedules | 3, 4 | ✅ scheduler combines approved leave, coverage per skill, skill validity and labour limits; fairness key + Jain indices (nights 0.977, hours 0.994) · metrics Phase 4 |
-| B-02 | Expose key decisions and exceptions | 3, 6, 8, 9 | ✅ decision rule ID + reason on every leave/swap decision; `validation_summary` lists every check, finding and acceptance result · UI Phase 9 |
+| B-02 | Expose key decisions and exceptions | 3, 6, 8, 9 | ✅ decision rule ID + reason on every leave/swap decision; `validation_summary`; API exposes decisions with rule text, histories and exceptions (+ review trail) · UI Phase 9 |
 | B-03 | Preserve traceability | 1, 3 | ✅ append-only events for leave (10,089), swaps (3,522), assignments (98,772); `supersedes_assignment_id` and `swap_id` links |
 | B-04 | Measurable outputs | 4, 6 | ✅ 4 derived tables + `metrics.json` / `metrics.md` (M-01 … M-08) · validation summary Phase 6 |
 | B-05 | Medium complexity: multiple related entities, conditional rules, ≥1 exception path, meaningful evaluation metrics | 1, 3, 6 | ✅ 21 tables, 42 rules, exception paths in data (rejections, expiries, cancellations, backfills, gaps, no-shows, missing punches) · metrics Phases 4/6 |
-| B-06 | Actors: employee, manager, HR partner, IT/ops partner, system administrator | 1, 9 | ✅ actor matrix in business-rules §1 (incl. Workforce Office for HR/ops partners) · dashboard views Phase 9 |
+| B-06 | Actors: employee, manager, HR partner, IT/ops partner, system administrator | 1, 9 | ✅ actor matrix (business rules §1); API endpoints per actor and review permissions by role (manager / HR partner / ops partner) · dashboard views Phase 9 |
 | W-01 | Master data first: Employee, Team, Skill, ShiftTemplate, ShiftAssignment | 2, 3 | ✅ master data first, then transactions (`generateDataset`) |
 | W-02 | Dependent records use valid parent IDs | 2–3, 6 | ✅ every row loaded into the schema with FKs checked (generate CLI + tests) |
 | W-03 | Teams, skills, shift templates | 2 | ✅ 100 teams, 30 skills, 4 templates (full profile) |
@@ -330,11 +336,11 @@ YottaFlex.ai/  (repo: YottaShift)
 │   ├── derive/             # ✅ derived-tables.js (4 derived tables), metrics.js (M-01 … M-08)
 │   ├── validation/         # ✅ read-dataset, integrity, formats, decisions, business-rules (detectors), evaluate, validate
 │   ├── export/             # ✅ write-dataset (pipeline), csv-export, formats (JSON, SQL seed, SQLite), manifest-compare, reports, ground-truth, validation-report
-│   ├── db/                 # ✅ database.js (open DB with schema, insert rows)
-│   ├── api/                # Express app
-│   └── cli/                # ✅ generate.js, validate.js, reproduce.js
+│   ├── db/                 # ✅ database.js (schema, load order, load / read all tables)
+│   ├── api/                # ✅ app.js, store.js, http.js, routes/ (catalog, roster, requests, exceptions)
+│   └── cli/                # ✅ generate.js, validate.js, reproduce.js, api.js
 ├── client/                 # React + Vite dashboard (workspace)
-├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive, anomalies, validation, export tests
+├── test/                   # ✅ schema, lib, config, master-data, leave-rules, scheduler, transactions, derive, anomalies, validation, export, api tests
 ├── data/                   # ✅ <profile>/{csv,json,sql,sqlite,ground_truth,reports}, manifest.json; starter committed; full: manifest, reports, ground truth only
 └── ai-disclosure/          # prompt history and AI-usage notes
 ```
@@ -393,6 +399,11 @@ YottaFlex.ai/  (repo: YottaShift)
 | D-48 | 2026-10-30 | Seed as batched multi-row INSERTs (500 per statement) in one transaction | Smaller and much faster to load than one statement per row; deferred FKs need one transaction | One INSERT per row |
 | D-49 | 2026-10-30 | Commit the starter dataset in full; commit only the manifest, reports and ground truth of the full profile | Full data is 391 MB and the SQLite file exceeds GitHub's 100 MB limit; the committed checksums still let anyone verify a regeneration | Git LFS (extra setup for reviewers); committing CSV only (breaks the "all formats" sample) |
 | D-50 | 2026-10-30 | Validation compares all four formats through per-table SHA-256 of rows in schema order | Proves IDs and values are identical across files without diffing 391 MB by hand | Row counts only |
+| D-51 | 2026-10-30 | API is read-only over the dataset; managers act through exception reviews and the leave what-if, not by approving requests (deviation from the Phase 8 plan) | The dataset is a closed snapshot with every request already decided by rule; approving through the API would rewrite history and break the published checksums | Approval endpoints on a mutable copy of the database |
+| D-52 | 2026-10-30 | Exception reviews in a separate, git-ignored SQLite file, append-only | Live user actions must not touch the reproducible dataset; append-only keeps the review trail | Extra table inside the dataset |
+| D-53 | 2026-10-30 | Leave what-if runs the same pure rule engine as the generator and validator | One implementation of the leave policy, so the explanation can never disagree with the data | A separate simplified check |
+| D-54 | 2026-10-30 | Stable finding IDs: `FND-` + hash of rule, kind and record IDs | Reviews keep pointing at the same finding across restarts and regenerations | Positional IDs |
+| D-55 | 2026-10-30 | Express pinned to an exact version (5.2.1) | Reproducible installs for reviewers; the only runtime dependency | Caret range |
 
 ## 9. Open questions & assumptions
 
@@ -434,3 +445,4 @@ YottaFlex.ai/  (repo: YottaShift)
 | 2026-10-30 | 5 | Labelled anomaly injection (5 types) and boundary cases (4 reachable types) on the clean baseline; ground truth CSV + JSON in its own folder; derived tables recomputed after injection; `generateDataset({ anomalies: false })` for the baseline; 25 new tests (172 total) proving detection, no false positives, isolation and no leakage. Decisions D-35 … D-39, assumptions A-18 … A-19 |
 | 2026-10-30 | 6 | `npm run validate`: file reader, 12 integrity checks, leave replay and swap decision checks, ground-truth evaluation (M-09), acceptance A-01 … A-04, JSON + Markdown summary; shared `LOAD_ORDER`; 20 new tests (192 total). Full profile PASS from files. Decisions D-40 … D-45 |
 | 2026-10-30 | 7 | JSON, SQL seed and SQLite exports; manifest with checksums, provenance and environment; `npm run reproduce` (two runs + published manifest); I-13 format agreement in validation; `.gitignore` keeps full manifest / reports / ground truth; 9 new tests (201 total). Both profiles: 48 / 48 files byte-identical. Decisions D-46 … D-50, Q-04 resolved |
+| 2026-10-30 | 8 | Express API (`npm run api`): read endpoints for every entity with histories, coverage, exceptions with ground-truth match, append-only exception reviews in a separate store, leave what-if on the real rule engine; validation and one error shape; 21 new tests (222 total). Leave/swap approval endpoints dropped by design (D-51). Decisions D-51 … D-55 |
