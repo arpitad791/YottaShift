@@ -1,7 +1,3 @@
-// Leave requests: seeded inputs (who asks, for what, when) and rule-based decisions
-// (R-LVE-01 … R-LVE-10). decideLeaves is a pure function of the requests and master data,
-// so the validator can replay it against the exported data.
-
 import { ENUMS } from '../../domain/constants.js';
 import { POLICY } from '../../domain/rules.js';
 import { addDays, dateMs, daysBetween, timestampFromMs } from '../../lib/dates.js';
@@ -10,7 +6,6 @@ const HOUR_MS = 3_600_000;
 const MINUTE_MS = 60_000;
 const SCHEDULABLE = new Set(ENUMS.SCHEDULABLE_ROLE);
 
-/** Picks from a weighted list in O(log n) using a prefix-sum array. */
 function weightedPicker(items, weights) {
   const prefix = [];
   let total = 0;
@@ -31,14 +26,9 @@ function weightedPicker(items, weights) {
 const minuteOfDay = (rng, fromHour, spanMinutes) =>
   (fromHour * 60 + rng.int(0, spanMinutes)) * MINUTE_MS + rng.int(0, 59) * 1000;
 
-/**
- * Seeded leave-request inputs. Each request carries its planned timings: when it is submitted,
- * when a decision would be made, and whether the employee withdraws it first.
- */
 export function generateLeaveRequests({ config, profile, window, employees, rng }) {
   const behaviour = config.leaveBehaviour;
   const candidates = employees.filter((e) => SCHEDULABLE.has(e.employee_role));
-  // Some people request leave far more often than others.
   const pickEmployee = weightedPicker(
     candidates,
     candidates.map(() => Math.exp(rng.normal(0, behaviour.requesterSpread))),
@@ -111,7 +101,6 @@ export function generateLeaveRequests({ config, profile, window, employees, rng 
       submittedMs,
       decidedMs: withdrawnMs === null ? decidedMs : null,
       withdrawnMs,
-      // Employee behaviour if the request is approved: maybe cancel it before it starts.
       cancelRoll: rng.next(),
       cancelPoint: rng.float(0.05, 0.95),
     });
@@ -119,7 +108,6 @@ export function generateLeaveRequests({ config, profile, window, employees, rng 
   return requests;
 }
 
-/** Cancellation time for an approved request under the generator's behaviour settings. */
 export function plannedCancellation(cancelShare) {
   return (request, decidedMs) => {
     if (request.leaveType === 'SICK' || request.cancelRoll >= cancelShare) return null;
@@ -133,10 +121,6 @@ export function plannedCancellation(cancelShare) {
  * Applies R-LVE-01 … R-LVE-07 in decision-time order (ties: submission time, then sequence),
  * so balance and team-cap checks only see decisions made earlier. A leave cancelled before a
  * later decision no longer counts for it (R-LVE-10).
- *
- * context: { teamsById, entitlements: Map("emp|type" → days), schedulableByTeam }
- * cancellationFor(request, decidedMs) → cancelled ms or null.
- * Returns Map(request → decision).
  */
 export function decideLeaves(requests, context, cancellationFor) {
   const { teamsById, entitlements, schedulableByTeam } = context;
@@ -259,7 +243,6 @@ export function decideLeaves(requests, context, cancellationFor) {
   return decisions;
 }
 
-/** Context for decideLeaves built from master tables. */
 export function leaveContext({ teams, employees, entitlementRows }) {
   return {
     teamsById: new Map(teams.map((t) => [t.team_id, t])),

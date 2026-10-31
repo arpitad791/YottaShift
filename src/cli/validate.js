@@ -1,9 +1,4 @@
 // Usage: npm run validate -- --profile <starter|full> [--data data] [--config path]
-//
-// Validates an exported dataset from its files alone: <data>/<profile>/csv/*.csv (plus json/,
-// sql/seed.sql and sqlite/yottashift.db, which must hold the same data) and
-// <data>/<profile>/ground_truth/. Writes <data>/<profile>/reports/validation_summary.{json,md}
-// and exits with code 1 when anything is wrong.
 
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';

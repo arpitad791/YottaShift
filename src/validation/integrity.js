@@ -1,10 +1,3 @@
-// Structural integrity of an exported dataset (Step 8 of the brief). Every check must pass on
-// any dataset this project produces, anomalies included: anomalies break business rules, never
-// structure. Keys, FKs and unique constraints are read from the schema itself (PRAGMAs), so the
-// checks cannot drift from sql/schema.sql.
-//
-// Each check: { id, name, checked, failures, samples } — samples holds the first few problems.
-
 import { createDatabase, loadTables } from '../db/database.js';
 import { deriveTables } from '../derive/derived-tables.js';
 import { COLUMN_ENUMS, ENUMS, ID_PATTERNS, TRANSITIONS } from '../domain/constants.js';
@@ -71,7 +64,6 @@ function collector(id, name) {
   };
 }
 
-/** Constraint metadata straight from SQLite. */
 function schemaMeta(db, tableNames) {
   const meta = {};
   for (const table of tableNames) {
@@ -110,7 +102,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
   const db = createDatabase();
   const meta = schemaMeta(db, names);
 
-  // I-01 File layout
   {
     const c = collector('I-01', 'Every table file present with the schema header');
     checks.push(
@@ -121,7 +112,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
     );
   }
 
-  // I-02 Schema load: STRICT types, CHECK constraints, FKs (deferred ones at commit)
   {
     const c = collector(
       'I-02',
@@ -145,7 +135,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
   }
   db.close();
 
-  // I-03 Primary keys
   {
     const c = collector('I-03', 'Primary keys unique and not null');
     checks.push(
@@ -165,7 +154,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
     );
   }
 
-  // I-04 Unique constraints (natural keys)
   {
     const c = collector('I-04', 'Unique / natural keys have no duplicates');
     checks.push(
@@ -186,7 +174,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
     );
   }
 
-  // I-05 Foreign keys, resolved in every file
   {
     const c = collector('I-05', 'Every foreign key resolves (all joins)');
     checks.push(
@@ -213,7 +200,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
     );
   }
 
-  // I-06 Enums
   {
     const c = collector('I-06', 'Enum columns hold allowed values');
     checks.push(
@@ -231,7 +217,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
     );
   }
 
-  // I-07 ID formats
   {
     const c = collector('I-07', 'IDs follow the documented formats');
     checks.push(
@@ -257,7 +242,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
   const employees = new Map((t.employee ?? []).map((e) => [e.employee_id, e]));
   const assignments = new Map((t.shift_assignment ?? []).map((a) => [a.assignment_id, a]));
 
-  // I-08 Date and time ordering
   {
     const c = collector('I-08', 'Dates and timestamps in order');
     checks.push(
@@ -297,7 +281,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
     );
   }
 
-  // I-09 Duplicates beyond keys
   {
     const c = collector('I-09', 'No duplicate records or overlapping effective ranges');
     checks.push(
@@ -333,7 +316,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
     );
   }
 
-  // I-10 Event-chain structure (allowed transitions are a business rule: R-GEN-01 / R-SWP-08)
   {
     const c = collector(
       'I-10',
@@ -381,7 +363,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
     );
   }
 
-  // I-11 Cross-table consistency (data dictionary §11)
   {
     const c = collector(
       'I-11',
@@ -522,7 +503,6 @@ export function checkIntegrity(tables, { layoutProblems = [] } = {}) {
     );
   }
 
-  // I-12 Derived tables recompute exactly from the source tables
   {
     const c = collector(
       'I-12',

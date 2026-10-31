@@ -1,7 +1,3 @@
-// Hand-built SVG charts (no chart library), following the mark specs: 2px lines with ringed
-// end dots, columns capped at 24px with 4px rounded data ends, hairline grid, a crosshair or
-// per-mark tooltip, and a table view so no value depends on colour or hover alone.
-
 import { useEffect, useRef, useState } from 'react';
 
 import { compact } from '../format.js';
@@ -18,7 +14,6 @@ function useWidth() {
   return [ref, width];
 }
 
-/** Round tick values: steps of 1, 2 or 5 × 10^k. */
 function niceTicks(min, max, count = 4) {
   const raw = (max - min) / count || 1;
   const power = 10 ** Math.floor(Math.log10(raw));
@@ -65,7 +60,6 @@ function DataTableView({ labels, series, format }) {
 
 const MARGIN = { top: 12, right: 64, bottom: 26, left: 48 };
 
-/** Line chart over ordered categories (dates). series: [{ key, label, color, values }]. */
 export function LineChart({
   labels,
   series,
@@ -217,7 +211,6 @@ export function LineChart({
   );
 }
 
-/** Column chart over ordered categories. One series, so the title names it (no legend). */
 export function ColumnChart({
   labels,
   values,
@@ -321,7 +314,6 @@ export function ColumnChart({
   );
 }
 
-/** Horizontal bars for categories, value at the tip in text ink. rows: [{ label, value }]. */
 export function BarList({ rows, color = 'var(--series-1)', format = String }) {
   const max = Math.max(...rows.map((r) => r.value), 1);
   return (

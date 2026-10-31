@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 
-/** Calls the local API; throws the API's own error message on a non-2xx answer. */
 export async function api(path, options) {
   const res = await fetch(`/api${path}`, options);
   const body = await res.json().catch(() => ({}));
@@ -15,7 +14,6 @@ export const postJson = (path, body) =>
     body: JSON.stringify(body),
   });
 
-/** Loads `path` (skips when null) and reloads when it changes; `reload` refetches on demand. */
 export function useApi(path) {
   const [state, setState] = useState({ loading: Boolean(path), data: null, error: null });
   const [tick, setTick] = useState(0);
@@ -34,7 +32,6 @@ export function useApi(path) {
   return { ...state, reload };
 }
 
-/** Query string from an object, skipping empty values. */
 export function query(params) {
   const entries = Object.entries(params).filter(
     ([, v]) => v !== undefined && v !== null && v !== '',

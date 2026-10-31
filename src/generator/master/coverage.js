@@ -1,5 +1,3 @@
-// Coverage requirements (minimum staffing per team × template × skill × day type).
-//
 // Demand is sized from each team's real supply: weekly shift capacity of its schedulable
 // members (contracted hours ÷ 8, reduced for expected leave and partial employment) times
 // the team's demand ratio. Most teams get a ratio below 1 (coverable), some close to 1 and a
@@ -20,7 +18,6 @@ const dayTypeOrder = order(ENUMS.DAY_TYPE);
 // Holidays are rare and replace a weekday or weekend day, so they are left out.
 const DAYS_PER_WEEK = { WEEKDAY: 5, WEEKEND: 2, HOLIDAY: 0 };
 
-/** Weekly shifts the team can staff at contracted (or, with hoursKey, maximum) hours. */
 export function weeklyShiftSupply(
   members,
   policiesById,
@@ -84,7 +81,6 @@ export function buildCoverageRequirements({
     );
     const perUnit = (plan.demandRatio * supply) / weekUnits;
 
-    /** Headcount per "template|skill|dayType" for a given demand level. */
     const headcounts = (unit) => {
       const result = new Map();
       for (const code of pattern.templates) {

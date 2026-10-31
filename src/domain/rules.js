@@ -1,7 +1,3 @@
-// Business-rule catalogue. IDs are cited on every generated decision (decision_rule_id,
-// ground-truth rule_id) and each one is specified in docs/business-rules.md; a test keeps
-// the two lists identical. Labour limits per employment type live in the labor_policy table.
-
 export const RULES = Object.freeze({
   'R-GEN-01': 'State changes are appended as events; history is never overwritten',
   'R-GEN-02': 'IDs are deterministic, zero-padded, immutable and never reused',
@@ -53,8 +49,6 @@ export const RULES = Object.freeze({
   'R-OVT-02': 'Weekly overtime must not exceed the cap',
 });
 
-// Thresholds that are policy rather than per-employee data. Changing one changes outcomes,
-// so the generator writes them into the manifest for traceability.
 export const POLICY = Object.freeze({
   attendance: Object.freeze({
     lateGraceMinutes: 5,

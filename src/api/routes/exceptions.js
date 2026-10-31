@@ -1,7 +1,3 @@
-// Detected exceptions (business-rule findings) with their ground-truth match and review trail.
-// Reviews are the API's only write: they are appended to a separate store and never change the
-// dataset, so its published checksums stay valid.
-
 import { Router } from 'express';
 
 import { ENUMS } from '../../domain/constants.js';

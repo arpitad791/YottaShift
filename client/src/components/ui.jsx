@@ -1,5 +1,3 @@
-// Small presentational pieces shared by every view.
-
 const STATUS = {
   good: { color: 'var(--good)', icon: '✓' },
   warning: { color: 'var(--warning)', icon: '!' },
@@ -19,7 +17,6 @@ export function Badge({ tone = 'neutral', children }) {
   );
 }
 
-/** Maps a record status to a tone (good / warning / critical / neutral). */
 export function toneOf(status) {
   if (['PASS', 'MET', 'APPROVED', 'APPLIED', 'SCHEDULED', 'PRESENT', 'RESOLVED'].includes(status))
     return 'good';
@@ -88,16 +85,12 @@ export function ErrorBox({ message }) {
   );
 }
 
-/** Renders loading / error states, then children(data). */
 export function Async({ state, children, what }) {
   if (state.error) return <ErrorBox message={state.error} />;
   if (state.loading || !state.data) return <Loading what={what} />;
   return children(state.data);
 }
 
-/**
- * columns: [{ key, label, num?, render?(row) }]; rows: objects. onRowClick makes rows selectable.
- */
 export function DataTable({
   columns,
   rows,
@@ -201,10 +194,8 @@ export function Select({ label, value, onChange, options, all = 'All' }) {
   );
 }
 
-/** Links to other views via the hash router: #/people/EMP-000001 etc. */
 export const Link = ({ to, children }) => <a href={`#/${to}`}>{children}</a>;
 
-/** An ID rendered as a link to the view that explains it. */
 export function RecordLink({ id }) {
   if (!id) return '—';
   if (id.startsWith('ASG-'))

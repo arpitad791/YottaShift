@@ -1,7 +1,3 @@
-// Enumerations and ID formats shared by the schema, generator and validator.
-// Every enum used in a CHECK (... IN (...)) list of sql/schema.sql must match exactly;
-// test/schema.test.js enforces that parity through COLUMN_ENUMS.
-
 const freeze = (values) => Object.freeze([...values]);
 
 export const ENUMS = Object.freeze({
@@ -20,7 +16,6 @@ export const ENUMS = Object.freeze({
   SKILL_CATEGORY: freeze(['TECHNICAL', 'SAFETY', 'LANGUAGE', 'OPERATIONAL', 'LEADERSHIP']),
   EMPLOYMENT_TYPE: freeze(['FULL_TIME', 'PART_TIME']),
   EMPLOYEE_ROLE: freeze(['MEMBER', 'LEAD', 'MANAGER', 'HR_PARTNER', 'OPS_PARTNER']),
-  // Only these roles fill coverage (R-SCH-04).
   SCHEDULABLE_ROLE: freeze(['MEMBER', 'LEAD']),
   EMPLOYMENT_STATUS: freeze(['ACTIVE', 'TERMINATED']),
   PROFICIENCY: freeze(['BASIC', 'INTERMEDIATE', 'EXPERT']),
@@ -82,7 +77,6 @@ export const ENUMS = Object.freeze({
 
   COVERAGE_STATUS: freeze(['MET', 'GAP']),
 
-  // Ground-truth labels (Phase 5). Never stored in input tables.
   LABEL_CLASS: freeze(['ANOMALY', 'BOUNDARY']),
   ISSUE_TYPE: freeze([
     'DOUBLE_BOOKED',
@@ -98,7 +92,6 @@ export const ENUMS = Object.freeze({
   ]),
 });
 
-// table.column → enum name, for every CHECK IN list in sql/schema.sql.
 export const COLUMN_ENUMS = Object.freeze({
   'labor_policy.employment_type': 'EMPLOYMENT_TYPE',
   'team.team_function': 'TEAM_FUNCTION',
@@ -170,7 +163,6 @@ export const TRANSITIONS = Object.freeze({
   }),
 });
 
-// Brief-mandated formats first, then the ones this project defines (docs/data-dictionary.md §2).
 export const ID_PATTERNS = Object.freeze({
   employee: /^EMP-\d{6}$/,
   shift: /^SHIFT-\d{4}-\d{2}-\d{2}-[ABCG]$/,

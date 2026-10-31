@@ -18,7 +18,6 @@ function fixtureRow(table, index = 0) {
   return structuredClone(entry[1][index]);
 }
 
-// Column-level enum checks have the form `CHECK (column IN ('A', 'B'))`.
 function schemaEnumChecks() {
   const checks = {};
   for (const [, table, body] of readSchema().matchAll(

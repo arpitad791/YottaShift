@@ -1,6 +1,3 @@
-// Tables copied from configuration with no randomness: labour policies, skills, shift
-// templates, holidays and the date × template shift calendar.
-
 import { ENUMS } from '../../domain/constants.js';
 import { addMinutes, clockMinutes, isWeekend, isoWeek, toTimestamp } from '../../lib/dates.js';
 import { ids } from '../../lib/ids.js';
@@ -24,7 +21,6 @@ export function buildLaborPolicies(config, window) {
   });
 }
 
-/** Skill catalogue in function order (enum order), then the Workforce Office skills. */
 export function buildSkills(config) {
   const catalogue = [];
   for (const fn of ENUMS.TEAM_FUNCTION) {
@@ -67,7 +63,6 @@ export function buildShiftTemplates(config) {
   });
 }
 
-/** Holidays inside the window only, in date order. */
 export function buildHolidays(config, window) {
   return config.holidays
     .filter((h) => h.date >= window.startDate && h.date <= window.endDate)

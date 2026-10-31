@@ -1,18 +1,3 @@
-// Labelled anomalies and boundary cases (Step 5 of the brief), applied to the clean baseline.
-//
-// Each anomaly is built so that it breaks exactly its own rule and nothing else, touches only
-// the rows it names, and keeps every row structurally valid (schema, FKs, IDs). Boundary cases
-// sit exactly at a limit and must NOT be flagged. Labels go to a separate ground-truth file;
-// nothing in the input tables marks a row as injected.
-//
-//   DOUBLE_BOOKED          a second booking of a shift the employee already works (no-show on it)
-//   LEAVE_OVERLAP          an assignment added inside an approved leave (no-show on it)
-//   SKILL_ABSENT           an assignment switched to a team skill the employee does not hold
-//   OVERTIME_CAP_EXCEEDED  one clock-out moved later so the week's overtime passes the cap
-//   SWAP_WITHOUT_APPROVAL  the APPROVED event removed from an applied swap
-//   BOUNDARY_*             overtime exactly at the cap, leave ending the day before a shift,
-//                          exactly max consecutive days, swap requested exactly at the notice limit
-
 import { ENUMS } from '../../domain/constants.js';
 import { POLICY } from '../../domain/rules.js';
 import { addDays, timestampFromMs, timestampMs } from '../../lib/dates.js';
@@ -106,7 +91,6 @@ function limitsFor(ctx, emp, week) {
   );
 }
 
-/** Would adding `shift` keep R-SCH-01 and R-SCH-04 … R-SCH-08 intact (leave is ignored)? */
 function fitsRoster(ctx, emp, shift) {
   const team = ctx.teams.get(emp.team_id);
   if (!ctx.patterns[team.operating_pattern].templates.includes(shift.template_code)) return false;
@@ -231,7 +215,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     });
   };
 
-  /** Moves an assignment's CLOCK_OUT by `minutes`; returns the new attendance event ID. */
   const moveClockOut = (assignmentId, minutes) => {
     const index = t.attendance_event.findIndex(
       (e) => e.assignment_id === assignmentId && e.event_type === 'CLOCK_OUT',
@@ -261,7 +244,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
       (a) => a.status === 'SCHEDULED' && outcomeOf(ctx, a.assignment_id) === 'PRESENT',
     );
 
-  // DOUBLE_BOOKED — the same shift booked twice (rest and consecutive days stay unchanged).
   let count = 0;
   for (const a of pick('double-booked', activeRows())) {
     if (count === n) break;
@@ -293,7 +275,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     count++;
   }
 
-  // LEAVE_OVERLAP — a shift added inside an approved leave; the leave itself is untouched.
   count = 0;
   for (const leave of pick(
     'leave-overlap',
@@ -331,7 +312,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     count++;
   }
 
-  // SKILL_ABSENT — an assignment switched to a team skill the employee does not hold.
   count = 0;
   for (const a of pick('skill-absent', activeRows())) {
     if (count === n) break;
@@ -358,7 +338,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     count++;
   }
 
-  // Employee-weeks with a full 7 employed days and every shift worked with a punch pair.
   const fullWeeks = [];
   for (const [employeeId, list] of ctx.active) {
     const emp = ctx.employees.get(employeeId);
@@ -384,7 +363,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     }
   }
 
-  // OVERTIME_CAP_EXCEEDED — the week's last clock-out moved past the remaining overtime budget.
   count = 0;
   const overtimeCandidates = pick(
     'overtime',
@@ -410,7 +388,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     count++;
   }
 
-  // SWAP_WITHOUT_APPROVAL — the APPROVED event removed; the chain now goes REQUESTED → APPLIED.
   count = 0;
   const swapEvents = Map.groupBy(t.swap_request_event, (e) => e.swap_id);
   const appliedSwaps = t.swap_request.filter((s) => s.status === 'APPLIED');
@@ -453,9 +430,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     count++;
   }
 
-  // ---- Boundary cases: valid values exactly at a limit; detectors must not flag them. ----
-
-  // Overtime exactly at the cap.
   count = 0;
   for (const w of pick(
     'boundary-overtime',
@@ -484,7 +458,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     count++;
   }
 
-  // Approved leave ending the day before an assigned shift (found in the data, unchanged).
   count = 0;
   for (const leave of pick(
     'boundary-leave',
@@ -511,7 +484,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     count++;
   }
 
-  // Exactly the maximum number of consecutive working days (found in the data, unchanged).
   count = 0;
   for (const [employeeId, list] of pick('boundary-consecutive', [...ctx.active])) {
     if (count === nb) break;
@@ -542,7 +514,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
     }
   }
 
-  // Swap requested exactly at the 24-hour notice limit and still approved.
   count = 0;
   const assignmentsById = new Map(t.shift_assignment.map((a) => [a.assignment_id, a]));
   for (const swap of pick(
@@ -608,7 +579,6 @@ export function injectAnomalies(source, { config, profile, rng }) {
   return { tables: t, groundTruth };
 }
 
-/** Boundary labels the configured shift templates cannot produce (documented, tested in units). */
 export const UNREACHABLE_BOUNDARIES = Object.freeze({
   BOUNDARY_REST_AT_MINIMUM:
     'No two templates within one operating pattern are exactly 11 h apart (A/B/C: 8 h or 16 h; G: 16 h); the exact-minimum case is covered by a scheduler unit test (B → G).',

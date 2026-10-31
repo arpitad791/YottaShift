@@ -1,7 +1,3 @@
-// Deterministic ID formatters (docs/data-dictionary.md §2). Every formatter checks its result
-// against ID_PATTERNS, so a counter that overflows its width fails loudly instead of
-// producing an ID the schema would reject.
-
 import { ID_PATTERNS } from '../domain/constants.js';
 import { compactTimestamp } from './dates.js';
 
@@ -34,7 +30,6 @@ export const ids = Object.freeze({
   groundTruth: (n) => checked('groundTruth', `GT-${pad(n, 6)}`),
 });
 
-/** Counter per key (e.g. per year for LVE-<year>-NNNNNN): next('2026') → 1, 2, 3 … */
 export function createCounter() {
   const counts = new Map();
   return (key = '') => {

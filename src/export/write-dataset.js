@@ -1,8 +1,3 @@
-// The export pipeline behind `npm run generate` (Step 9 of the brief): generate → SQLite database
-// (the integrity gate: every row passes the schema) → CSV, JSON, SQL seed → ground truth →
-// metrics → manifest with row counts and SHA-256 of every file. No file carries a timestamp, so
-// two runs with the same seed and environment are byte-identical (Step 10).
-
 import { readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -73,7 +68,6 @@ function buildManifest({ config, profileName, dataset, dir, files }) {
   };
 }
 
-/** Generates and writes every output for one profile; returns what was written. */
 export function exportDataset({ config, profileName, outDir }) {
   const dataset = generateDataset(config, profileName);
   const dir = join(outDir, profileName);

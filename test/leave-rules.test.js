@@ -25,7 +25,6 @@ const entitlementRows = members.flatMap((e) => [
 
 let seq = 0;
 const at = (date, time = '09:00:00') => timestampMs(`${date}T${time}+05:30`);
-/** A request decided `delayHours` after submission (sick: at submission). */
 function request(
   employee,
   leaveType,

@@ -7,6 +7,5 @@ export const pct = (ratio, digits = 1) =>
 export const when = (ts) => (ts ? `${ts.slice(0, 10)} ${ts.slice(11, 16)}` : '—');
 export const hours = (minutes) =>
   minutes === null || minutes === undefined ? '—' : `${(minutes / 60).toFixed(2)} h`;
-/** Compact axis ticks: 950, 1.2K, 12K. */
 export const compact = (n) =>
   Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);

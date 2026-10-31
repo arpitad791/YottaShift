@@ -1,7 +1,4 @@
 // Usage: npm run api -- [--profile starter] [--data data] [--port 3001]
-//
-// Serves the generated dataset of a profile over HTTP (read endpoints, exception reviews, leave
-// what-if). The dataset files are opened read-only; reviews go to <data>/<profile>/api/reviews.db.
 
 import { parseArgs } from 'node:util';
 

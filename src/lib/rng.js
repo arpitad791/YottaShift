@@ -1,7 +1,5 @@
-// Seeded pseudo-random numbers. sfc32 is fast, has a 128-bit state and passes PractRand;
-// its state is derived from "<seed>:<stream label>" with the cyrb128 string hash.
-// Both are public-domain algorithms: sfc32 by Chris Doty-Humphrey (PractRand), cyrb128 by bryc.
-//
+// sfc32 seeded through the cyrb128 string hash; both are public domain (sfc32 by Chris
+// Doty-Humphrey from PractRand, cyrb128 by bryc).
 // Each generator step forks its own named stream, so adding draws to one step never
 // shifts the numbers another step receives. Same seed + same label = same sequence.
 
@@ -45,7 +43,6 @@ function sfc32(a, b, c, d) {
   };
 }
 
-/** Creates a deterministic random stream. All helpers draw from the same sequence. */
 export function createRng(seed, label = 'root') {
   const next = sfc32(...cyrb128(`${seed}:${label}`));
   for (let i = 0; i < 15; i++) next(); // discard the first outputs, as recommended for sfc32
@@ -68,7 +65,6 @@ export function createRng(seed, label = 'root') {
       if (items.length === 0) throw new RangeError('pick() from an empty list');
       return items[int(0, items.length - 1)];
     },
-    /** entries: [[value, weight], ...] with non-negative weights. */
     weighted(entries) {
       const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
       if (!(total > 0)) throw new RangeError('weighted() needs a positive total weight');

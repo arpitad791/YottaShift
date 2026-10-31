@@ -10,7 +10,6 @@ import { checkBusinessRules } from '../src/validation/business-rules.js';
 import { addDays } from '../src/lib/dates.js';
 
 const config = loadConfig();
-// The clean baseline, before Phase 5 injects labelled anomalies.
 const baseline = { anomalies: false };
 const datasets = {
   starter: generateDataset(config, 'starter', baseline),

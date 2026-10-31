@@ -1,4 +1,3 @@
-/** Binary min-heap ordered by `compare(a, b) < 0`. */
 export class MinHeap {
   constructor(compare) {
     this.compare = compare;

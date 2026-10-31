@@ -1,7 +1,3 @@
-// Full validation of an exported dataset: structural integrity, decision replay, business-rule
-// findings, evaluation against the ground truth, and the brief's acceptance criteria.
-// The summary is deterministic (no timestamps) so it can be compared across runs.
-
 import { checkBusinessRules } from './business-rules.js';
 import { checkSwapDecisions, replayLeaveDecisions } from './decisions.js';
 import { evaluateDetection } from './evaluate.js';
@@ -55,15 +51,10 @@ function acceptance(tables, { integrity, decisions, findings, groundTruth }) {
   ];
 }
 
-/**
- * `dir` (optional) is the dataset folder on disk; when given, the JSON, SQL seed and SQLite
- * exports are compared with the CSV data as well (I-13).
- */
 export function validateDataset({ tables, layoutProblems, groundTruth }, { patterns, dir = null }) {
   const integrity = checkIntegrity(tables, { layoutProblems });
   if (dir !== null) integrity.push(checkFormats(dir, tables));
   const structureOk = integrity.every((c) => c.failures === 0);
-  // Rule checks need well-formed tables; on a structurally broken dataset they are skipped.
   const decisions = structureOk ? [replayLeaveDecisions(tables), checkSwapDecisions(tables)] : [];
   const findings = structureOk ? checkBusinessRules(tables, { patterns }) : [];
   const evaluation = structureOk ? evaluateDetection(findings, groundTruth) : null;

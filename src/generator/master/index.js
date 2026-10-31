@@ -1,6 +1,3 @@
-// Master data, generated parents first (Step 2 of the brief). Each step draws from its own
-// named random stream, so changing one step leaves every other step's output unchanged.
-
 import { createRng } from '../../lib/rng.js';
 import { buildWindow, resolveProfile } from '../config.js';
 import { buildCoverageRequirements } from './coverage.js';
@@ -66,7 +63,6 @@ export function generateMasterData(config, profileName) {
     profileName,
     profile,
     window,
-    // Load order: every table appears after the tables it references.
     tables: [
       ['labor_policy', laborPolicies],
       ['skill', skills],

@@ -1,5 +1,3 @@
-// Attendance events for the final roster (R-ATT-01 … R-ATT-05, R-OVT-02).
-//
 // Only assignments still SCHEDULED at the end get events; cancelled and swapped-out ones were
 // never worked. Clock-outs are capped so an employee's weekly worked time never exceeds
 // contracted hours (prorated) + the overtime cap: the clean baseline has no cap breaches, so

@@ -1,5 +1,3 @@
-// Small HTTP helpers shared by the routes: one error shape, strict parameter parsing, pagination.
-
 import { ENUMS, ID_PATTERNS } from '../domain/constants.js';
 import { addDays } from '../lib/dates.js';
 
@@ -16,13 +14,11 @@ export const notFound = (what, id) =>
   new HttpError(404, 'NOT_FOUND', `${what} ${id} does not exist`);
 export const badRequest = (message, details) => new HttpError(400, 'BAD_REQUEST', message, details);
 
-/** A path parameter that must match one of the documented ID formats. */
 export function idParam(value, kind) {
   if (!ID_PATTERNS[kind].test(value)) throw badRequest(`"${value}" is not a valid ${kind} ID`);
   return value;
 }
 
-/** Optional query/body value from an enum; undefined when absent. */
 export function enumValue(value, enumName, name) {
   if (value === undefined || value === '') return undefined;
   if (!ENUMS[enumName].includes(value)) {
@@ -31,7 +27,6 @@ export function enumValue(value, enumName, name) {
   return value;
 }
 
-/** Optional YYYY-MM-DD date; undefined when absent. */
 export function dateValue(value, name) {
   if (value === undefined || value === '') return undefined;
   try {
@@ -42,7 +37,6 @@ export function dateValue(value, name) {
   return value;
 }
 
-/** Optional value matching an ID format; undefined when absent. */
 export function idValue(value, kind, name) {
   if (value === undefined || value === '') return undefined;
   if (typeof value !== 'string' || !ID_PATTERNS[kind].test(value))
@@ -52,7 +46,6 @@ export function idValue(value, kind, name) {
 
 export const MAX_LIMIT = 500;
 
-/** limit (1 … 500, default 50) and offset (≥ 0, default 0) from the query string. */
 export function pagination(query) {
   const parse = (value, fallback, min, max, name) => {
     if (value === undefined) return fallback;
@@ -82,7 +75,6 @@ export function where(filters) {
   return { sql: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '', params };
 }
 
-/** Runs a filtered, paginated listing: { data, page: { limit, offset, total } }. */
 export function page(db, { from, select, filters, orderBy, query }) {
   const { limit, offset } = pagination(query);
   const w = where(filters);

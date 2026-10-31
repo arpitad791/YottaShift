@@ -2,7 +2,6 @@ import { useApi } from '../api.js';
 import { Async, DataTable, Panel, RecordLink, StatusBadge } from '../components/ui.jsx';
 import { hours, when } from '../format.js';
 
-/** One assignment's full story: who, what, every status change, punches and the reconciled result. */
 export function AssignmentView({ assignmentId }) {
   const a = useApi(assignmentId ? `/assignments/${assignmentId}` : null);
   if (!assignmentId) return <Panel title="No assignment selected" />;

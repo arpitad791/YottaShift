@@ -1,6 +1,3 @@
-// A minimal, fully consistent dataset touching every table, used to prove the schema
-// accepts valid data. Rows are listed parent-first in load order.
-
 const ts = (local) => `${local}+05:30`;
 
 export const VALID_FIXTURE = [

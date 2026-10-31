@@ -1,9 +1,3 @@
-// Teams and employees. Generated together because each references the other: a team names
-// its manager and HR partner, and every employee belongs to a team (deferred FKs in the schema).
-//
-// Team IDs: operational teams first, the Workforce Office last. Employee IDs: team by team,
-// manager first, then leads, then members (docs/data-dictionary.md §2).
-
 import { ENUMS } from '../../domain/constants.js';
 import { allocate } from '../../lib/allocate.js';
 import { addDays, daysBetween } from '../../lib/dates.js';
@@ -12,7 +6,6 @@ import { FIRST_NAMES, LAST_NAMES } from '../reference/names.js';
 
 const OPERATIONAL_FUNCTIONS = ENUMS.TEAM_FUNCTION.filter((f) => f !== 'WORKFORCE_OFFICE');
 
-/** One plan per team: generation inputs that later steps (skills, coverage) build on. */
 function planTeams(config, profile, rng) {
   const operationalCount = profile.teams - 1;
   const functionCounts = allocate(

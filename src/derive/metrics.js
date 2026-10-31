@@ -1,7 +1,3 @@
-// Metrics M-01 … M-08 (docs/business-rules.md §5), computed only from source and derived
-// tables. M-09 (detection quality) needs the ground truth and is produced in Phase 6.
-// No timestamps or run-specific values, so the output is reproducible byte for byte.
-
 import { ENUMS } from '../domain/constants.js';
 import { POLICY } from '../domain/rules.js';
 import { minutesBetween } from '../lib/dates.js';
@@ -19,7 +15,6 @@ const countBy = (rows, key) => {
 };
 const sum = (values) => values.reduce((a, b) => a + b, 0);
 
-/** Nearest-rank percentile of a numeric list (null when empty). */
 export function percentile(values, p) {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -51,7 +46,6 @@ export function computeMetrics(tables, { patterns, window }) {
     return minutesBetween(s.start_at, s.end_at) / 60;
   };
 
-  // M-01 / M-02 — coverage and gaps
   const coverage = tables.coverage_status.filter((c) => c.required_headcount > 0);
   const required = sum(coverage.map((c) => c.required_headcount));
   const filled = sum(coverage.map((c) => Math.min(c.required_headcount, c.qualified_headcount)));
@@ -84,12 +78,10 @@ export function computeMetrics(tables, { patterns, window }) {
       ...values,
     }));
 
-  // M-03 — overtime
   const weeks = tables.employee_week_summary;
   const overtimeWeeks = weeks.filter((w) => w.overtime_hours > 0);
   const overtimeValues = overtimeWeeks.map((w) => w.overtime_hours);
 
-  // M-04 — leave
   const leave = tables.leave_request;
   const decidedLeave = leave.filter((l) => l.decided_at !== null);
   const approvedEver = (l) => l.status === 'APPROVED' || l.status === 'CANCELLED';
@@ -100,7 +92,6 @@ export function computeMetrics(tables, { patterns, window }) {
     }),
   );
 
-  // M-05 — swaps
   const swaps = tables.swap_request;
   const managerDecided = swaps.filter((s) => s.decided_by_role === 'MANAGER');
   const approvedSwaps = managerDecided.filter(
@@ -110,7 +101,6 @@ export function computeMetrics(tables, { patterns, window }) {
     (s) => minutesBetween(s.requested_at, s.decided_at) / 60,
   );
 
-  // M-06 / M-07 — attendance and reconciliation
   const due = tables.attendance_reconciliation;
   const outcomes = countBy(due, 'outcome');
   const clockedIn = due.filter((r) => r.clock_in_at !== null);
@@ -144,7 +134,7 @@ export function computeMetrics(tables, { patterns, window }) {
       ]),
   );
 
-  // M-08 — fairness among members employed for the whole window, compared within each team
+  // Fairness only among members employed for the whole window, compared within each team.
   const fullWindow = tables.employee.filter(
     (e) =>
       SCHEDULABLE.has(e.employee_role) &&

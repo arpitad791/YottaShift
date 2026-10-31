@@ -37,7 +37,6 @@ export function readSchema() {
   return readFileSync(SCHEMA_PATH, 'utf8').replace(/\r\n/g, '\n');
 }
 
-/** Opens a database (in memory by default) with foreign keys on and the schema applied. */
 export function createDatabase(path = ':memory:') {
   const db = new DatabaseSync(path);
   db.exec('PRAGMA foreign_keys = ON;');
@@ -45,14 +44,12 @@ export function createDatabase(path = ':memory:') {
   return db;
 }
 
-/** Every table of an open database as { table: rows }, in insertion (= export) order. */
 export function readAllTables(db) {
   return Object.fromEntries(
     LOAD_ORDER.map((table) => [table, db.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()]),
   );
 }
 
-/** Map of every table in LOAD_ORDER → its column names in schema order. */
 export function schemaColumns() {
   const db = createDatabase();
   const columns = new Map(LOAD_ORDER.map((table) => [table, tableColumns(db, table)]));
@@ -60,7 +57,6 @@ export function schemaColumns() {
   return columns;
 }
 
-/** Column names of a table, in schema order. */
 export function tableColumns(db, table) {
   return db
     .prepare(`SELECT name FROM pragma_table_info(?) ORDER BY cid`)
@@ -98,7 +94,6 @@ export function loadTables(db, tables) {
   }
 }
 
-/** Inserts plain-object rows; column order comes from the first row. */
 export function insertRows(db, table, rows) {
   if (rows.length === 0) return;
   const columns = Object.keys(rows[0]);

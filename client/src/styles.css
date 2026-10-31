@@ -1,5 +1,3 @@
-/* Tokens: the validated reference palette (blue / orange series, status set, ink, chrome).
-   Dark mode uses its own steps of the same hues, not an inverted light theme. */
 :root {
   color-scheme: light;
   --page: #f9f9f7;
@@ -317,7 +315,6 @@ dl.facts dd {
   margin: 0;
 }
 
-/* Charts */
 .chart {
   position: relative;
 }

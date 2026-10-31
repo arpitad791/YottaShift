@@ -1,5 +1,3 @@
-// Transaction and event tables, built on top of the master data:
-// leave requests and their decisions → timeline (rosters, backfills, swaps) → attendance.
 // IDs are assigned at the end in creation order (leave by submission time; assignments and
 // swaps in the timeline's chronological order), then every object is written as rows.
 
@@ -65,7 +63,6 @@ export function generateTransactions(config, master) {
     rng: rng.fork('attendance'),
   });
 
-  // --- IDs ---------------------------------------------------------------------------------
   const leaveId = new Map();
   const nextLeave = createCounter();
   for (const r of [...requests].sort((a, b) => a.submittedMs - b.submittedMs || a.seq - b.seq)) {
@@ -85,7 +82,6 @@ export function generateTransactions(config, master) {
     swapId.set(s, ids.swapRequest(year, nextSwap(year)));
   }
 
-  // --- Leave -------------------------------------------------------------------------------
   const leaveRows = [];
   const leaveEventRows = [];
   for (const { request: r, decision: d } of leaves) {
@@ -158,7 +154,6 @@ export function generateTransactions(config, master) {
     });
   }
 
-  // --- Assignments ---------------------------------------------------------------------------
   const assignmentRows = [];
   const assignmentEventRows = [];
   for (const a of assignments) {
@@ -192,7 +187,6 @@ export function generateTransactions(config, master) {
     });
   }
 
-  // --- Swaps ---------------------------------------------------------------------------------
   const swapRows = [];
   const swapEventRows = [];
   for (const s of swaps) {

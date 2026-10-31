@@ -1,5 +1,3 @@
-// Schedules, coverage and assignment history.
-
 import { Router } from 'express';
 
 import { badRequest, dateValue, enumValue, idParam, idValue, notFound, page } from '../http.js';
@@ -48,7 +46,6 @@ export function rosterRoutes(store) {
     );
   });
 
-  // Per-date totals for charts: required vs filled vs attended, and the size of the gaps.
   router.get('/coverage/daily', (req, res) => {
     const teamId = idValue(req.query.teamId, 'team', 'teamId');
     const data = db
@@ -87,7 +84,6 @@ export function rosterRoutes(store) {
         db
           .prepare('SELECT * FROM attendance_reconciliation WHERE assignment_id = ?')
           .get(assignmentId) ?? null,
-      // History links: what this assignment replaced, and what replaced it.
       supersedes: assignment.supersedes_assignment_id,
       superseded_by: db
         .prepare(

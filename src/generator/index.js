@@ -1,7 +1,3 @@
-// Full dataset (Steps 2, 5 and 6 of the brief): master data → transactions and events →
-// labelled anomalies on the valid baseline → derived tables recomputed from the final records.
-// The ground truth is returned separately and is never part of `tables`.
-
 import { deriveTables } from '../derive/derived-tables.js';
 import { createRng } from '../lib/rng.js';
 import { injectAnomalies } from './anomalies/inject.js';

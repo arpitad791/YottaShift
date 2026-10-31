@@ -3,7 +3,6 @@ import { join } from 'node:path';
 
 import { toCsv } from '../lib/csv.js';
 
-// Layout from docs/data-dictionary.md §10.
 export const GROUND_TRUTH_COLUMNS = Object.freeze([
   'ground_truth_id',
   'label_class',
@@ -17,10 +16,6 @@ export const GROUND_TRUTH_COLUMNS = Object.freeze([
   'description',
 ]);
 
-/**
- * Writes ground_truth.csv and ground_truth.json into their own folder, away from the input
- * tables (Step 7 of the brief): nothing that reads data/<profile>/csv can see a label.
- */
 export function writeGroundTruth(dir, rows) {
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });

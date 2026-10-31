@@ -14,10 +14,7 @@ import { generateDataset } from '../src/generator/index.js';
 import { buildShifts, buildShiftTemplates } from '../src/generator/master/reference-tables.js';
 import { addMinutes } from '../src/lib/dates.js';
 
-// ---------------------------------------------------------------------------------------------
-// Hand-built fixture. Window 2026-01-01 … 2026-01-14: W01 has 4 days (Thu–Sun), W02 has 7,
-// W03 has 3. Every expected number below is worked out by hand in the comments.
-// ---------------------------------------------------------------------------------------------
+// Window 2026-01-01 … 2026-01-14: W01 has 4 days (Thu–Sun), W02 has 7, W03 has 3.
 const config = loadConfig();
 const shifts = buildShifts(buildWindow('2026-01-01', 14), buildShiftTemplates(config), []);
 const shiftOf = (date, template = 'A') =>
@@ -321,9 +318,6 @@ describe('metric helpers', () => {
   });
 });
 
-// ---------------------------------------------------------------------------------------------
-// Full profile: derived tables agree with independent recomputation and the metrics add up.
-// ---------------------------------------------------------------------------------------------
 describe('derived tables and metrics at full scale (clean baseline)', () => {
   const dataset = generateDataset(config, 'full', { anomalies: false });
   const t = Object.fromEntries(dataset.tables);

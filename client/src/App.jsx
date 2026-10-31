@@ -10,7 +10,6 @@ import { PeopleView } from './views/People.jsx';
 import { RequestsView } from './views/Requests.jsx';
 import { ValidationView } from './views/Validation.jsx';
 
-// Each view serves one or more of the brief's actors.
 const TABS = [
   ['overview', 'Overview', 'HR partner · system administrator'],
   ['coverage', 'Coverage', 'Manager · IT / operations partner'],
@@ -20,7 +19,6 @@ const TABS = [
   ['validation', 'Validation', 'System administrator'],
 ];
 
-/** "#/people/EMP-000001" → ['people', 'EMP-000001']. */
 function useRoute() {
   const parse = () => window.location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
   const [route, setRoute] = useState(parse);

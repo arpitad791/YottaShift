@@ -1,10 +1,3 @@
-// Cross-row business-rule checks (the ones the schema cannot express, R-GEN-03). They read only
-// the exported tables, never the ground truth, so the same code can grade injected anomalies.
-//
-// Each finding: { ruleId, issueType, kind, table, recordIds, employeeId, referenceDate, message }
-//   kind VIOLATION — a rule is broken; EXCEPTION — an allowed, reported situation
-//   (e.g. an uncorrected missing clock-out).
-
 import { overtimeHours, weekDatesOf, workedMinutes } from '../derive/derived-tables.js';
 import { ENUMS, TRANSITIONS } from '../domain/constants.js';
 import { minutesBetween, timestampMs } from '../lib/dates.js';
@@ -43,7 +36,6 @@ function context(tables) {
   return { employees, shifts, policies, active, activeByEmployee, weekDates };
 }
 
-/** R-SCH-01 … R-SCH-08 on the final roster. */
 function rosterRules(tables, ctx, patterns) {
   const out = [];
   const { employees, shifts, policies, active, activeByEmployee, weekDates } = ctx;
@@ -223,7 +215,6 @@ function rosterRules(tables, ctx, patterns) {
   return out;
 }
 
-/** R-ATT-01, R-ATT-04 and R-OVT-02 from attendance events. */
 function attendanceRules(tables, ctx) {
   const out = [];
   const { employees, shifts, policies, weekDates } = ctx;
@@ -341,7 +332,6 @@ function attendanceRules(tables, ctx) {
   return out;
 }
 
-/** R-GEN-01 / R-SWP-08: event chains are complete, ordered, allowed, and end at the row's status. */
 function lifecycleRules(tables) {
   const out = [];
   const specs = [
@@ -392,7 +382,6 @@ function lifecycleRules(tables) {
   return out;
 }
 
-/** R-SWP-06: a swap is applied, or a SWAP assignment exists, only after an APPROVED event. */
 function swapRules(tables) {
   const out = [];
   const approved = new Set(
@@ -425,10 +414,6 @@ function swapRules(tables) {
   return out;
 }
 
-/**
- * Runs every cross-row rule. `tables` maps table name → rows; `patterns` is the operating-pattern
- * section of the generator config (which templates each pattern staffs).
- */
 export function checkBusinessRules(tables, { patterns }) {
   const ctx = context(tables);
   return [

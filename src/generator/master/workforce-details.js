@@ -1,5 +1,3 @@
-// Employee skills (bridge table) and leave entitlements, both derived from the organisation.
-
 import { ENUMS } from '../../domain/constants.js';
 import { addDays, daysBetween } from '../../lib/dates.js';
 
@@ -22,7 +20,6 @@ const PROFICIENCY = {
   ],
 };
 
-/** Days of the window during which the employee is employed (0 … window.days). */
 export function employedDaysInWindow(employee, window) {
   const from = employee.hire_date > window.startDate ? employee.hire_date : window.startDate;
   const to =

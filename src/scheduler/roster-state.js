@@ -1,7 +1,3 @@
-// In-memory roster: every employee's active assignments plus the counters the hard rules
-// (R-SCH-01 … R-SCH-08) and the fairness ordering (R-SCH-09) need. Timestamps are kept as
-// numbers (timestampMs) and dates as window day indexes so checks stay fast at full scale.
-
 import { ENUMS } from '../domain/constants.js';
 import { isoWeek, timestampMs } from '../lib/dates.js';
 
@@ -11,7 +7,6 @@ const SCHEDULABLE = new Set(ENUMS.SCHEDULABLE_ROLE);
 // Weekly load band used by the fairness key: 0.2 = one 8-hour shift of a 40-hour contract.
 export const FAIRNESS_BAND = 0.2;
 
-/** Days of an ISO week that are inside the window and inside the employee's employment. */
 export function employedDaysInWeek(employee, weekDates) {
   return weekDates.filter(
     (d) =>
@@ -20,10 +15,6 @@ export function employedDaysInWeek(employee, weekDates) {
   ).length;
 }
 
-/**
- * Weekly limits in minutes. Scheduled time is capped by R-SCH-08; worked time by R-OVT-02
- * (contracted hours prorated to the employed days of the week, plus the overtime cap).
- */
 export function weeklyLimits(policy, employedDays) {
   const contracted = (policy.contracted_weekly_hours * 60 * employedDays) / 7;
   const workedCap = contracted + policy.weekly_overtime_cap_hours * 60;
@@ -187,7 +178,6 @@ export class RosterState {
     );
   }
 
-  /** Nearest active assignments before and after a start time, skipping `ignore`. */
   neighbours(emp, startMs, ignore) {
     const list = emp.active;
     let lo = 0;

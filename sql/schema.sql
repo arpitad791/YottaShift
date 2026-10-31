@@ -1,6 +1,3 @@
--- YottaShift schema (SQLite 3.45+, STRICT tables).
---
--- Conventions
 --   * Dates are 'YYYY-MM-DD'; timestamps are ISO-8601 local time with the fixed offset
 --     '+05:30', so string comparison orders them correctly.
 --   * Enum CHECK lists mirror src/domain/constants.js (test/schema.test.js keeps them equal).
@@ -11,10 +8,6 @@
 --     events are append-only (rule R-GEN-01).
 
 PRAGMA foreign_keys = ON;
-
--- ---------------------------------------------------------------------------------------
--- Master data
--- ---------------------------------------------------------------------------------------
 
 CREATE TABLE labor_policy (
   policy_id                  TEXT PRIMARY KEY
@@ -72,7 +65,6 @@ CREATE TABLE employee (
   CHECK ((employment_status = 'TERMINATED') = (termination_date IS NOT NULL))
 ) STRICT;
 
--- Bridge table: Employee N:M Skill.
 CREATE TABLE employee_skill (
   employee_id TEXT NOT NULL REFERENCES employee (employee_id),
   skill_id    TEXT NOT NULL REFERENCES skill (skill_id),
@@ -145,10 +137,6 @@ CREATE TABLE coverage_requirement (
   CHECK (effective_to IS NULL OR effective_to >= effective_from)
 ) STRICT;
 
--- ---------------------------------------------------------------------------------------
--- Roster (published schedule) and its history
--- ---------------------------------------------------------------------------------------
-
 CREATE TABLE shift_assignment (
   assignment_id            TEXT PRIMARY KEY
                            CHECK (assignment_id GLOB 'ASG-[0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]'),
@@ -183,10 +171,6 @@ CREATE TABLE shift_assignment_event (
   CHECK ((event_seq = 1) = (from_status IS NULL)),
   CHECK ((actor_role = 'SYSTEM') = (actor_employee_id IS NULL))
 ) STRICT;
-
--- ---------------------------------------------------------------------------------------
--- Leave
--- ---------------------------------------------------------------------------------------
 
 CREATE TABLE leave_request (
   leave_request_id       TEXT PRIMARY KEY
@@ -231,10 +215,6 @@ CREATE TABLE leave_request_event (
   CHECK ((actor_role = 'SYSTEM') = (actor_employee_id IS NULL))
 ) STRICT;
 
--- ---------------------------------------------------------------------------------------
--- Attendance
--- ---------------------------------------------------------------------------------------
-
 CREATE TABLE attendance_event (
   attendance_event_id TEXT PRIMARY KEY
                       CHECK (attendance_event_id = 'ATT-' || employee_id || '-' || strftime('%Y%m%dT%H%M%S', substr(event_at, 1, 19))),
@@ -250,10 +230,6 @@ CREATE TABLE attendance_event (
   CHECK ((event_type = 'NO_SHOW') = (source = 'SYSTEM')),
   CHECK ((source = 'MANUAL') = (recorded_by_employee_id IS NOT NULL))
 ) STRICT;
-
--- ---------------------------------------------------------------------------------------
--- Swaps
--- ---------------------------------------------------------------------------------------
 
 CREATE TABLE swap_request (
   swap_id                   TEXT PRIMARY KEY
@@ -303,10 +279,6 @@ CREATE TABLE swap_request_event (
   CHECK ((event_seq = 1) = (from_status IS NULL)),
   CHECK ((actor_role = 'SYSTEM') = (actor_employee_id IS NULL))
 ) STRICT;
-
--- ---------------------------------------------------------------------------------------
--- Derived outputs (Phase 4). Always recomputed from the tables above, never generated.
--- ---------------------------------------------------------------------------------------
 
 CREATE TABLE employee_week_summary (
   employee_id              TEXT NOT NULL REFERENCES employee (employee_id),
@@ -367,10 +339,6 @@ CREATE TABLE attendance_reconciliation (
   CHECK (outcome NOT IN ('NO_SHOW', 'NO_RECORD') OR (clock_in_at IS NULL AND clock_out_at IS NULL)),
   CHECK ((worked_minutes IS NOT NULL) = (outcome = 'PRESENT'))
 ) STRICT;
-
--- ---------------------------------------------------------------------------------------
--- Join indexes (FK columns used by the validator, derivations and API)
--- ---------------------------------------------------------------------------------------
 
 CREATE INDEX idx_employee_team ON employee (team_id);
 CREATE INDEX idx_team_hr_partner ON team (hr_partner_employee_id);

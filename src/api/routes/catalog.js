@@ -1,5 +1,3 @@
-// Dataset overview, reports, teams and employees.
-
 import { Router } from 'express';
 
 import { ENUMS } from '../../domain/constants.js';

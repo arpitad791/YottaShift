@@ -1,11 +1,3 @@
-// Runs the scheduling workflow in time order on one event queue:
-//   - weekly roster publication (R-SCH-10), 7 days before each ISO week;
-//   - approved leave: overlapping published assignments are cancelled and backfilled when
-//     someone eligible exists, otherwise the slot becomes a gap (R-LVE-09);
-//   - swap requests against the roster as it stands, decided by the manager with the state at
-//     decision time, expired, cancelled or applied (R-SWP-01 … R-SWP-08).
-// Every state change is recorded as an event on the assignment or swap; nothing is overwritten.
-
 import { POLICY } from '../../domain/rules.js';
 import { addDays, dateMs, isoWeekday, timestampMs, toTimestamp } from '../../lib/dates.js';
 import { MinHeap } from '../../lib/heap.js';
@@ -84,7 +76,6 @@ export function runTimeline({ config, profile, window, master, leaves, rng }) {
     state.remove(assignment);
   };
 
-  // Weekly publication.
   for (const [week, dates] of state.weekDates) {
     const monday = addDays(dates[0], 1 - isoWeekday(dates[0]));
     const publishMs = timestampMs(
@@ -103,7 +94,6 @@ export function runTimeline({ config, profile, window, master, leaves, rng }) {
     );
   }
 
-  // Approved leave cancels already-published assignments and tries to backfill them.
   const backfillRng = rng.fork('backfill');
   let backfilled = 0;
   for (const { request, decision } of leaves) {
@@ -140,7 +130,6 @@ export function runTimeline({ config, profile, window, master, leaves, rng }) {
     });
   }
 
-  // Swaps.
   const behaviour = config.swapBehaviour;
   const swapRng = rng.fork('swaps');
   const windowStartMs = dateMs(window.startDate);
@@ -168,7 +157,6 @@ export function runTimeline({ config, profile, window, master, leaves, rng }) {
     if (swap.counterpartAssignment) locked.delete(swap.counterpartAssignment);
   };
 
-  /** First failing swap rule as [ruleId, reasonCode], or null when the swap is allowed. */
   const evaluate = (swap, ms) => {
     const {
       requester,

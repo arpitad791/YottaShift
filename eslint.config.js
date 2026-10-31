@@ -18,7 +18,6 @@ export default [
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
-  // The dashboard runs in the browser (its Vite config still runs in Node).
   {
     files: ['client/src/**/*.{js,jsx}'],
     languageOptions: { globals: { ...globals.browser } },
@@ -26,7 +25,6 @@ export default [
   {
     files: ['src/**/*.js', 'test/**/*.js'],
     rules: {
-      // Generated data must be reproducible from the fixed seed.
       'no-restricted-properties': [
         'error',
         {

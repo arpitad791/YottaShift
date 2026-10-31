@@ -1,7 +1,3 @@
-// M-09: detector findings graded against the ground truth. A finding matches a label when it has
-// the same issue type and shares at least one record ID (detectors report whole groups, e.g. all
-// of a week's shifts, so exact set equality would be brittle).
-
 import { ENUMS } from '../domain/constants.js';
 
 const ANOMALY_TYPES = ENUMS.ISSUE_TYPE.filter((t) => !t.startsWith('BOUNDARY_'));
@@ -33,7 +29,6 @@ export function evaluateDetection(findings, groundTruth) {
     };
   });
 
-  // Rows: what the label says; columns: what the detectors reported on those records.
   const confusion = {};
   const bump = (row, column) => {
     confusion[row] ??= {};

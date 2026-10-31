@@ -1,9 +1,4 @@
 // Usage: npm run reproduce -- --profile <starter|full> [--data data] [--config path]
-//
-// Step 10 of the brief: regenerates the profile twice with the same seed into two temporary
-// folders, compares every file's row count, size and SHA-256, and also compares them with the
-// published manifest in <data>/<profile>/manifest.json when there is one. Writes
-// <data>/<profile>/reports/reproducibility.{json,md}; exits 1 on any unexplained difference.
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

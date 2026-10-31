@@ -1,16 +1,11 @@
-// JSON, SQL seed and SQLite exports. Every format writes the same rows with the columns in
-// schema order, so the four formats (with CSV) hold exactly the same data.
-
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { createDatabase, loadTables } from '../db/database.js';
 
-// Rows per INSERT statement: keeps seed.sql compact and fast to load.
 const SEED_BATCH = 500;
 
-/** One JSON array per table, one row object per line (diff- and stream-friendly). */
 export function writeJsonTables(dir, tables, columnsOf) {
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
@@ -32,7 +27,6 @@ const sqlLiteral = (value) => {
   return `'${String(value).replaceAll("'", "''")}'`;
 };
 
-/** Data-only seed for sql/schema.sql, parent tables first, in one transaction. */
 export function writeSqlSeed(file, tables, columnsOf, { profileName, seed }) {
   mkdirSync(dirname(file), { recursive: true });
   const parts = [

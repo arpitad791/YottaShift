@@ -1,11 +1,3 @@
-// Derived tables (Step 6 of the brief), recomputed from the source tables only:
-//   employee_week_summary      — R-OVT-01 / R-OVT-02
-//   coverage_status            — R-COV-01 / R-COV-04
-//   leave_balance              — R-LVE-03
-//   attendance_reconciliation  — R-ATT-01 … R-ATT-03
-// Nothing here is generated or random; the validator reruns the same functions on exported
-// data and compares (arithmetic reconciliation).
-
 import { ENUMS } from '../domain/constants.js';
 import { isoWeek, timestampMs } from '../lib/dates.js';
 import { employedDaysInWeek, weeklyLimits } from '../scheduler/roster-state.js';
@@ -24,17 +16,14 @@ export function workedMinutes(shift, clockIn, clockOut) {
   return Math.max(0, wholeMinutes(paidStart, clockOut));
 }
 
-/** R-OVT-01: overtime hours (2 decimals) from worked minutes and the prorated contract. */
 export function overtimeHours(worked, contractedMinutes) {
   return round2(Math.max(0, (worked - contractedMinutes) / 60));
 }
 
-/** Window dates grouped by ISO week, taken from the shift calendar. */
 export function weekDatesOf(shiftRows) {
   return Map.groupBy([...new Set(shiftRows.map((s) => s.shift_date))].sort(), isoWeek);
 }
 
-/** One row per final SCHEDULED assignment: what was planned against what was punched. */
 export function attendanceReconciliation(tables) {
   const shifts = new Map(tables.shift.map((s) => [s.shift_id, s]));
   const events = Map.groupBy(tables.attendance_event, (e) => e.assignment_id);
@@ -69,7 +58,6 @@ export function attendanceReconciliation(tables) {
   return rows.sort((x, y) => x.assignment_id.localeCompare(y.assignment_id));
 }
 
-/** One row per schedulable employee per ISO week they are employed in. */
 export function employeeWeekSummary(tables, reconciliation) {
   const shifts = new Map(tables.shift.map((s) => [s.shift_id, s]));
   const policies = new Map(tables.labor_policy.map((p) => [p.policy_id, p]));
@@ -209,7 +197,6 @@ export function coverageStatus(tables, reconciliation) {
     });
 }
 
-/** R-LVE-03: entitlement minus the days of leave whose final status is APPROVED. */
 export function leaveBalance(tables) {
   const approved = new Map();
   for (const l of tables.leave_request) {
@@ -229,7 +216,6 @@ export function leaveBalance(tables) {
   });
 }
 
-/** All four derived tables in load order, from a map of source tables. */
 export function deriveTables(tables) {
   const reconciliation = attendanceReconciliation(tables);
   return [

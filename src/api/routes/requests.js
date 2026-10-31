@@ -1,6 +1,3 @@
-// Leave and swap requests with their full decision history, plus a leave "what-if" that runs
-// the real rule engine without storing anything.
-
 import { Router } from 'express';
 
 import { ENUMS } from '../../domain/constants.js';
@@ -60,7 +57,6 @@ export function requestRoutes(store) {
       events: db
         .prepare('SELECT * FROM leave_request_event WHERE leave_request_id = ? ORDER BY event_seq')
         .all(id),
-      // Roster changes this leave caused: cancellations and backfills (R-LVE-09).
       roster_effects: db
         .prepare(
           `SELECT ev.event_id, ev.assignment_id, ev.to_status, ev.reason_code, ev.event_at, a.employee_id, a.shift_id
@@ -71,7 +67,6 @@ export function requestRoutes(store) {
     });
   });
 
-  // What would the rules decide for this request, given everything recorded in the dataset?
   router.post('/leave/evaluate', (req, res) => {
     const body = req.body ?? {};
     const employeeId = idValue(body.employeeId, 'employee', 'employeeId');

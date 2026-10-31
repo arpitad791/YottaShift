@@ -1,9 +1,3 @@
-// Access to one generated dataset for the API.
-//   - the dataset's SQLite file, opened read-only: the published files never change;
-//   - the full tables, loaded once on first need (exceptions, leave what-if);
-//   - business-rule findings, computed once from those tables and matched to the ground truth;
-//   - exception reviews, appended to a separate database (data/<profile>/api/reviews.db).
-
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -58,7 +52,6 @@ export class DatasetStore {
     this.reviews.close();
   }
 
-  /** A JSON file produced next to the dataset (manifest, reports), or null when absent. */
   json(relativePath) {
     const file = join(this.dir, relativePath);
     return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null;
@@ -74,7 +67,6 @@ export class DatasetStore {
     return this.cache.groundTruth;
   }
 
-  /** Every business-rule finding, with a stable ID, the employee's team and its ground-truth label. */
   findings() {
     if (!this.cache.findings) {
       const t = this.tables();

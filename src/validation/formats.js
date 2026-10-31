@@ -1,7 +1,3 @@
-// I-13: the JSON files, the SQL seed and the SQLite database hold exactly the same rows as the
-// CSV files (same order, same values), so IDs are identical in every export. Each table is
-// compared through a SHA-256 of its rows in schema column order.
-
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';

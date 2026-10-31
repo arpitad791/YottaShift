@@ -1,5 +1,3 @@
-// Fair, constraint-aware roster building (R-SCH-01 … R-SCH-10, R-COV-01 … R-COV-04).
-//
 // For each date and team the scheduler fills required headcount slot by slot. Skills with the
 // fewest qualified people are filled first, so multi-skilled staff are not used up on easy
 // slots. Each slot goes to the eligible employee who ranks first on the R-SCH-09 fairness
@@ -10,7 +8,6 @@ import { compareKeys } from './roster-state.js';
 
 const templateOrder = (code) => ENUMS.TEMPLATE_CODE.indexOf(code);
 
-/** Index of coverage rows by team, template and day type (R-COV-01 lookup). */
 export function coverageIndex(coverageRows) {
   const index = Map.groupBy(coverageRows, (r) => `${r.team_id}|${r.template_code}|${r.day_type}`);
   return (teamId, template, dayType, date) =>
@@ -19,7 +16,6 @@ export function coverageIndex(coverageRows) {
     );
 }
 
-/** Best eligible employee for one slot, or null. */
 export function pickCandidate(
   state,
   { candidates, shift, skillId, atMs, tiebreak, exclude = null },
@@ -37,7 +33,6 @@ export function pickCandidate(
   return best;
 }
 
-/** Seeded per-employee tie-break values for one scheduling round. */
 export function tiebreaker(rng) {
   const values = new Map();
   return (emp) => {
@@ -46,10 +41,6 @@ export function tiebreaker(rng) {
   };
 }
 
-/**
- * Builds and publishes the roster for one ISO week (R-SCH-10). `assign` creates and records
- * an assignment; it is called once per filled slot.
- */
 export function publishWeek(state, { week, publishMs, teams, requirementsFor, rng, assign }) {
   const tiebreak = tiebreaker(rng);
   for (const date of state.weekDates.get(week)) {

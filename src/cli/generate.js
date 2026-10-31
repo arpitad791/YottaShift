@@ -1,9 +1,4 @@
 // Usage: npm run generate -- --profile <starter|full> [--out data] [--config path]
-//
-// Generates the dataset for a profile and writes everything under <out>/<profile>/:
-//   sqlite/yottashift.db (built first: every row must pass sql/schema.sql), csv/, json/,
-//   sql/seed.sql, ground_truth/ (kept apart from the inputs), reports/metrics.{json,md}
-//   and manifest.json (row counts + SHA-256 of every file).
 
 import { parseArgs } from 'node:util';
 

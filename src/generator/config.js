@@ -1,6 +1,3 @@
-// Loads and strictly validates config/generator.config.json. Every key is required and
-// unknown keys are rejected, so a typo fails at load time instead of silently changing data.
-
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -60,7 +57,6 @@ function oneOf(value, allowed, path) {
   return value;
 }
 
-/** An object of non-negative weights whose keys come from `allowed` and that sum to 1. */
 function shares(value, path, allowed, { exactKeys = false } = {}) {
   object(value, path, exactKeys ? allowed : undefined);
   let total = 0;
@@ -369,7 +365,6 @@ export function validateConfig(config) {
   return config;
 }
 
-/** { min, max } with min <= max inside the given bounds. */
 function range(value, path, bounds) {
   object(value, path, ['min', 'max']);
   number(value.min, `${path}.min`, bounds);
@@ -379,8 +374,6 @@ function range(value, path, bounds) {
 
 const probability = (value, path) => number(value, path, { min: 0, max: 1 });
 
-// Behaviour settings drive seeded *inputs* (who asks for leave, how late someone is);
-// outcomes still come from the rules in docs/business-rules.md.
 function validateBehaviour(config) {
   const discretionary = ENUMS.LEAVE_TYPE.filter((t) => t !== 'SICK');
   const leave = object(config.leaveBehaviour, 'leaveBehaviour', [

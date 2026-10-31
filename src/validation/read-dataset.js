@@ -1,12 +1,8 @@
-// Reads an exported dataset back from disk: one CSV per table, typed by the schema's declared
-// column types, plus the ground truth. The validator only ever sees these files.
-
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { createDatabase, LOAD_ORDER, tableColumns } from '../db/database.js';
 
-/** RFC 4180 parser (quoted fields, doubled quotes, embedded commas and newlines). */
 export function parseCsv(text) {
   const rows = [];
   let row = [];
@@ -39,10 +35,8 @@ export function parseCsv(text) {
   return rows;
 }
 
-/** Column name → declared SQLite type, for every table in the schema. */
 export function schemaTypes() {
   const db = createDatabase();
-  // Parent-first, so the tables can be loaded back into the schema in this order.
   const tables = [...LOAD_ORDER];
   const types = new Map(
     tables.map((table) => [
@@ -69,11 +63,6 @@ const convert = (value, type) => {
   return value;
 };
 
-/**
- * Loads every schema table from <dir>/csv and the ground truth from <dir>/ground_truth.
- * Returns { tables, layoutProblems, groundTruth }; a missing file or a header that differs from
- * the schema is reported, not thrown, so the summary can show it.
- */
 export function readDataset(dir) {
   const { tables: names, types, columns } = schemaTypes();
   const tables = {};
@@ -100,7 +89,6 @@ export function readDataset(dir) {
     });
   }
 
-  // The ground truth is part of the delivered dataset; without it detection cannot be graded.
   let groundTruth = [];
   const truthFile = join(dir, 'ground_truth', 'ground_truth.csv');
   if (existsSync(truthFile)) {

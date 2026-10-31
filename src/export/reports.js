@@ -14,7 +14,6 @@ const counts = (object) =>
     Object.entries(object).map(([k, v]) => [`\`${k}\``, v]),
   );
 
-/** Human-readable summary of metrics.json for reviewers. */
 export function metricsMarkdown(metrics, { profileName, seed }) {
   const m = metrics;
   const fairness = (key) =>

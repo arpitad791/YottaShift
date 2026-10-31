@@ -1,4 +1,3 @@
-// Date and timestamp helpers for the single project time zone (+05:30, no DST).
 // Local wall-clock time is handled as if it were UTC internally, which is exact because
 // the offset never changes; the offset is only appended when formatting.
 
@@ -25,7 +24,6 @@ export function addDays(date, days) {
   return msToDate(dateToMs(date) + days * DAY_MS);
 }
 
-/** Whole days from `from` to `to` (negative when `to` is earlier). */
 export function daysBetween(from, to) {
   return Math.round((dateToMs(to) - dateToMs(from)) / DAY_MS);
 }
@@ -34,7 +32,6 @@ export function dateRange(start, count) {
   return Array.from({ length: count }, (_, i) => addDays(start, i));
 }
 
-/** ISO weekday: Monday = 1 … Sunday = 7. */
 export function isoWeekday(date) {
   return new Date(dateToMs(date)).getUTCDay() || 7;
 }
@@ -43,7 +40,6 @@ export function isWeekend(date) {
   return isoWeekday(date) >= 6;
 }
 
-/** ISO-8601 week, e.g. 2026-01-01 → "2026-W01" (the week is owned by its Thursday). */
 export function isoWeek(date) {
   const thursday = addDays(date, 4 - isoWeekday(date));
   const year = thursday.slice(0, 4);
@@ -51,12 +47,10 @@ export function isoWeek(date) {
   return `${year}-W${String(week).padStart(2, '0')}`;
 }
 
-/** First date on or after `date` that falls on the given ISO weekday. */
 export function nextIsoWeekday(date, weekday) {
   return addDays(date, (weekday - isoWeekday(date) + 7) % 7);
 }
 
-/** "2026-01-01" + "06:00" → "2026-01-01T06:00:00+05:30". */
 export function toTimestamp(date, time) {
   dateToMs(date);
   const full = time.length === 5 ? `${time}:00` : time;
@@ -66,10 +60,6 @@ export function toTimestamp(date, time) {
   return `${date}T${full}${TIMEZONE.offset}`;
 }
 
-/**
- * Timestamp → milliseconds of local wall-clock time (as if UTC). Only meaningful for ordering
- * and differences; convert back with timestampFromMs. Used in hot loops instead of strings.
- */
 export function timestampMs(timestamp) {
   return timestampToMs(timestamp);
 }
@@ -78,7 +68,6 @@ export function timestampFromMs(ms) {
   return msToTimestamp(ms);
 }
 
-/** Midnight at the start of a date, in the same millisecond scale as timestampMs. */
 export function dateMs(date) {
   return dateToMs(date);
 }
@@ -107,7 +96,6 @@ export function addSeconds(timestamp, seconds) {
   return msToTimestamp(timestampToMs(timestamp) + seconds * 1000);
 }
 
-/** Minutes from `from` to `to`, rounded down to whole minutes. */
 export function minutesBetween(from, to) {
   return Math.floor((timestampToMs(to) - timestampToMs(from)) / MINUTE_MS);
 }
@@ -117,7 +105,6 @@ export function timestampDate(timestamp) {
   return timestamp.slice(0, 10);
 }
 
-/** "2026-01-01T05:58:00+05:30" → "20260101T055800" (attendance event IDs). */
 export function compactTimestamp(timestamp) {
   timestampToMs(timestamp);
   return timestamp.slice(0, 19).replace(/[-:]/g, '');

@@ -1,6 +1,3 @@
-// Express application over one generated dataset. Everything is mounted under /api; errors use
-// one shape: { error: { code, message, details? } }.
-
 import express from 'express';
 
 import { HttpError } from './http.js';

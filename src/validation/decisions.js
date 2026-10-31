@@ -1,11 +1,3 @@
-// Decision checks: are the recorded outcomes the ones the documented rules produce?
-//   D-01 leave — the full decision engine (R-LVE-01 … R-LVE-07) is replayed on the exported
-//        requests, with withdrawal and cancellation times taken from the exported events.
-//   D-02 swaps — every decision is checked against the rules that can be verified from the
-//        records alone (team, skills, notice, deadline, application window, links). Reasons that
-//        depend on the live roster (rest, double booking, leave, weekly hours) are only checked
-//        for consistency with the earlier rules in the evaluation order.
-
 import { POLICY } from '../domain/rules.js';
 import { decideLeaves, leaveContext } from '../generator/transactions/leave.js';
 import { timestampFromMs, timestampMs } from '../lib/dates.js';
@@ -54,7 +46,6 @@ export function leaveRequestsFromTables(t) {
   }));
 }
 
-/** Runs the leave rule engine over requests built by leaveRequestsFromTables (plus any extra). */
 export function decideFromTables(t, requests) {
   return decideLeaves(
     requests,

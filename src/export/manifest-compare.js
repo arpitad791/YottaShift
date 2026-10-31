@@ -1,4 +1,3 @@
-/** Differences between two manifests (file list, rows, bytes, SHA-256, seed, config), as text. */
 export function compareManifests(left, right) {
   const differences = [];
   const rightFiles = new Map(right.files.map((f) => [f.path, f]));
