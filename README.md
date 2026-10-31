@@ -2,32 +2,152 @@
 
 > Candidate project for the YottaFlex AI recruitment drive. Not an official YottaFlex product.
 
-A seeded, reproducible synthetic dataset and a working scheduling
-workflow that combine **leave requests, shift coverage, skills and labour constraints** into fair
-and feasible schedules, expose every key decision and exception, keep full history, and produce
-measurable outputs.
+YottaShift generates a seeded, reproducible synthetic dataset for a 2,000-person workforce and
+runs the full scheduling workflow on it: leave requests and decisions, skill-based rostering,
+shift swaps with manager approval, attendance, overtime and coverage gaps. Every decision is
+stored with the rule that made it, history is never overwritten, labelled anomalies are graded
+against a separate ground truth, and two runs with the same seed are byte-identical. A local API
+and dashboard expose the decisions and exceptions.
 
-**Quick start** (Node.js 24+; each command from the repository root):
+## Setup
+
+### Prerequisites
+
+| Tool | Version | Check |
+| --- | --- | --- |
+| Node.js | **24 or newer** (the project uses the built-in `node:sqlite`) | `node -v` |
+| npm | comes with Node.js | `npm -v` |
+| Git | any recent version | `git --version` |
+
+No database server, Docker or external service is needed. Allow about 500 MB of disk space for
+the dependencies and the full dataset.
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/arpitad791/YottaShift.git
+```
+
+```bash
+cd YottaShift
+```
 
 ```bash
 npm install
+```
+
+This installs the generator, validator and API, and the dashboard (an npm workspace) in one go.
+
+### 2. Validate the committed sample
+
+The small `starter` dataset (200 employees, 28 days) is committed, so it can be checked without
+generating anything:
+
+```bash
+npm run validate -- --profile starter
+```
+
+The last line should read `Status PASS — report in data/starter/reports`.
+
+### 3. Generate the full dataset
+
+```bash
 npm run generate -- --profile full
+```
+
+Takes about 20–25 s and writes 48 files (about 391 MB) to `data/full/`. The run ends with:
+
+```
+Ground truth: 100 anomalies, 40 boundary cases
+Coverage filled 99.08 %, 686 short slots, 20 overtime cap breaches
+Wrote 48 files (390.9 MB) + manifest.json to data/full
+```
+
+The full data is too large for git, so only its manifest, reports and ground truth are
+committed; this step recreates the rest.
+
+### 4. Validate the full dataset
+
+```bash
 npm run validate -- --profile full
+```
+
+Takes about 30 s and reads only the exported files. Expected result:
+
+```
+Detection: 100/100 anomalies (recall 1, precision 1); boundary flagged 0/40; unexplained findings 0
+Acceptance: A-01 met, A-02 met, A-03 met, A-04 met
+Status PASS — report in data/full/reports
+```
+
+### 5. Check reproducibility
+
+```bash
 npm run reproduce -- --profile full
+```
+
+Generates the dataset twice more from scratch and compares every file with the other run and with
+the committed manifest. Takes about 40–50 s. Expected result:
+
+```
+Run A vs run B: 0 difference(s)
+Run A vs published manifest: 0 difference(s)
+IDENTICAL — report in data/full/reports
+```
+
+### 6. Run the tests
+
+```bash
 npm test
 ```
 
-Then `npm run api -- --profile full` and, in a second terminal, `npm run client` for the
-dashboard at `http://localhost:5173`. The small `starter` profile is already committed, so
-`--profile starter` works without generating anything.
+Takes about 30–40 s. Expected: `tests 223`, `pass 223`, `fail 0`. Code quality checks:
+`npm run lint` and `npm run format:check`.
 
-> **Status:** complete (Phases 0–10): domain design and schema, master data, the transaction
-> workflow (leave, scheduling, swaps, attendance), derived values with metrics, labelled
-> anomalies with a separate ground truth, file-level validation graded against that ground truth,
-> CSV / JSON / SQL / SQLite exports with a checksummed manifest, a two-run reproducibility check,
-> a local Express API and a React dashboard. How it was built, phase by phase:
-> [tracking.md](tracking.md). Design reasoning and a walkthrough:
-> [docs/design-notes.md](docs/design-notes.md).
+### 7. Start the API and the dashboard
+
+In a first terminal:
+
+```bash
+npm run api -- --profile full
+```
+
+Wait for `Exceptions ready: 280 findings`. The API is served at `http://localhost:3001/api`;
+try `http://localhost:3001/api/health` (the bare `/api` path has no route and answers 404).
+
+In a second terminal:
+
+```bash
+npm run client
+```
+
+Open `http://localhost:5173`. The dashboard forwards its `/api` calls to port 3001.
+
+### Commands at a glance
+
+| Command | What it does |
+| --- | --- |
+| `npm run generate -- --profile <starter\|full>` | Builds the dataset from seed `20261022` into `data/<profile>/` (options: `--out <dir>`, `--config <file>`) |
+| `npm run validate -- --profile <name>` | Checks the exported files: integrity, decision replay, anomaly detection vs ground truth, acceptance criteria (exit code 1 on failure) |
+| `npm run reproduce -- --profile <name>` | Two fresh runs compared file by file and with the committed manifest (exit code 1 on any difference) |
+| `npm test` | 223 unit and integration tests |
+| `npm run lint` · `npm run format:check` | ESLint and Prettier |
+| `npm run api -- --profile <name>` | Local API on port 3001 (options: `--port`, `--data`) |
+| `npm run client` · `npm run client:build` | Dashboard dev server on port 5173 · static build to `client/dist/` |
+
+### Troubleshooting
+
+- **`No such built-in module: node:sqlite`** — Node.js is older than 24; install Node.js 24 or
+  newer.
+- **Port 3001 already in use** — start the API on another port with
+  `npm run api -- --profile full --port 3002`, and point the dashboard at it by setting
+  `YOTTASHIFT_API=http://localhost:3002` before `npm run client` (PowerShell:
+  `$env:YOTTASHIFT_API="http://localhost:3002"; npm run client`).
+- **Dashboard header says "API not reachable"** — the API is not running; start it first
+  (step 7).
+- **`reproduce` reports a different environment** — the SQLite file's bytes depend on the
+  Node.js / SQLite versions (the manifest records Node 24.15.0, SQLite 3.51.3). That one file is
+  reported separately; every other file must still match.
 
 ---
 
@@ -43,22 +163,54 @@ truth, validation, and fixed-seed reproducibility.
 
 ## 2. What it produces
 
-- ✅ Master and transaction tables: Employee, Team, Skill, ShiftTemplate, ShiftAssignment,
-  LeaveRequest, HolidayCalendar, AttendanceEvent, CoverageRequirement, SwapRequest (plus bridge
-  and event-history tables)
-- ✅ Derived tables recomputed from them: weekly hours and overtime, coverage status (gaps),
-  leave balances, attendance reconciliation
-- ✅ Metrics M-01 … M-08 (`reports/metrics.json` + readable `reports/metrics.md`)
-- ✅ `ground_truth/ground_truth.csv` / `.json` for the injected anomalies and boundary cases,
-  kept apart from the input tables
-- ✅ Validation summary (`reports/validation_summary.json` + `.md`): integrity, decision replay,
-  detection precision/recall against the ground truth (M-09), acceptance criteria
-- ✅ Every table as CSV and JSON, a SQL seed (`sql/seed.sql`) and a ready SQLite database
-  (`sqlite/yottashift.db`) — all four hold identical data
-- ✅ `manifest.json`: command, seed, generator version, config hash, environment, provenance,
-  policy, and rows / bytes / SHA-256 of every file
-- ✅ Reproducibility report (`reports/reproducibility.json` + `.md`): two fresh runs compared
-  file by file, and against the published manifest
+- Master and transaction tables for the 10 entities of the brief (Employee, Team, Skill,
+  ShiftTemplate, ShiftAssignment, LeaveRequest, HolidayCalendar, AttendanceEvent,
+  CoverageRequirement, SwapRequest), plus bridge and event-history tables
+- Derived tables recomputed from them: weekly hours and overtime, coverage status (gaps), leave
+  balances, attendance reconciliation
+- Metrics M-01 … M-08, a validation summary with detection precision / recall (M-09), and a
+  reproducibility report
+- A separate ground truth for the injected anomalies and boundary cases
+- Every table as CSV and JSON, a SQL seed and a ready SQLite database — all four hold identical
+  data — and a manifest with the row count, size and SHA-256 of every file
+
+```
+data/<profile>/
+├── sqlite/yottashift.db      schema + every row, ready to query
+├── csv/<table>.csv           21 tables
+├── json/<table>.json         the same rows as JSON
+├── sql/seed.sql              data-only INSERTs; load after sql/schema.sql
+├── ground_truth/             labels, kept apart from the inputs
+├── reports/                  metrics, validation summary, reproducibility report (JSON + Markdown)
+└── manifest.json             rows, bytes and SHA-256 of every file + seed, config, environment, provenance
+```
+
+| Profile | Teams | Employees | Days | Leave requests | Swap requests | In git |
+| --- | --- | --- | --- | --- | --- | --- |
+| `starter` | 10 | 200 | 28 | 160 | 60 | everything (12 MB) |
+| `full` | 100 | 2,000 | 90 | 5,000 | 1,500 | manifest, reports and ground truth (data is 391 MB) |
+
+Both profiles use the same generator and seed; only the scale differs
+(`config/generator.config.json`). The full profile holds 583,330 rows, including 95,970 shift
+assignments, 184,575 attendance events and 46,320 coverage cells. File layout:
+[data dictionary §12](docs/data-dictionary.md#12-export-files).
+
+**Key metrics, full profile** (`data/full/reports/metrics.md`; in brackets the clean baseline,
+where the labelled anomalies move it):
+
+| Metric | Value |
+| --- | --- |
+| M-01 Coverage filled by qualified staff / by staff who clocked in | 99.08 % / 97.50 % (99.10 % / 97.52 %) |
+| M-02 Short slots · missing headcount-hours | 686 · 6,896 h (669 · 6,752 h) |
+| M-03 Employee-weeks with overtime · max weekly overtime · cap breaches | 7,371 · 13.48 h · 20 (max 12 h, 0 breaches) |
+| M-04 Leave approval rate: annual / casual / sick / unpaid | 63 % / 79 % / 91 % / 81 % |
+| M-05 Swap approval of manager decisions · expiry rate | 40 % · 10.5 % (41 %) |
+| M-06 Punctuality · no-shows · extensions | 93.1 % · 1.6 % · 9.4 % |
+| M-07 Due shifts with a complete record · worked ÷ scheduled (present) | 99.83 % · 101.4 % |
+| M-08 Fairness (Jain's index, mean across teams): nights / weekends / holidays / hours per contract | 0.977 / 0.948 / 0.907 / 0.994 |
+
+The 20 cap breaches are exactly the 20 labelled `OVERTIME_CAP_EXCEEDED` cases; the extra short
+slots come from the `SKILL_ABSENT` cases.
 
 ## 3. Tech stack
 
@@ -66,33 +218,27 @@ truth, validation, and fixed-seed reproducibility.
 | --- | --- | --- |
 | Runtime | Node.js 24 (ES modules) | One language across generator, API and UI |
 | Storage | SQLite via built-in `node:sqlite` | PK/FK and join validation, SQL seed export, no server to install |
-| API | Express 5.2.1 (the only runtime dependency) | Small, familiar; Express 5 forwards thrown errors to one handler |
-| UI | React 19.3.1 + Vite 8.3.4, hand-built SVG charts | Dashboard for decisions and exceptions; no UI or chart library |
+| API | Express 5.2.1 | Small and familiar; Express 5 forwards thrown errors to one handler |
+| UI | React 19.3.1 + Vite 8.3.4, hand-built SVG charts | Dashboard without a UI or chart library |
 | Tests | `node:test` | Built in, no extra dependency |
-| Quality | ESLint 10, Prettier 3 | Lint + consistent formatting |
+| Quality | ESLint 10, Prettier 3 | Lint and consistent formatting |
 
-Full reasoning and rejected alternatives: [tracking.md §8](tracking.md#8-decision-log).
-
-### Dependencies and licences
-
-All direct dependencies are pinned to exact versions and are MIT-licensed. The generator,
-validator and exports use only Node's standard library (`node:sqlite`, `node:crypto`,
-`node:test`). Two small public-domain algorithms are re-implemented in
-[src/lib/rng.js](src/lib/rng.js) and attributed there: the sfc32 generator (Chris
-Doty-Humphrey, from the PractRand suite) and the cyrb128 string hash (bryc). No data or other
-code is taken from elsewhere.
+**Dependencies and licences.** All direct dependencies are pinned to exact versions and are
+MIT-licensed. The generator, validator and exports use only Node's standard library. Two small
+public-domain algorithms are re-implemented in [src/lib/rng.js](src/lib/rng.js) and attributed
+there: the sfc32 generator (Chris Doty-Humphrey, PractRand) and the cyrb128 string hash (bryc).
+No data or other code is taken from elsewhere.
 
 | Package | Version | Licence | Used for |
 | --- | --- | --- | --- |
-| express | 5.2.1 | MIT | API (runtime) |
-| react, react-dom | 19.3.1 | MIT | Dashboard (runtime) |
+| express | 5.2.1 | MIT | API |
+| react, react-dom | 19.3.1 | MIT | Dashboard |
 | vite, @vitejs/plugin-react | 8.3.4, 6.1.2 | MIT | Dashboard build and dev server |
 | eslint, @eslint/js, globals | 10.13.0, 10.0.1, 17.13.0 | MIT | Linting |
 | prettier | 3.9.10 | MIT | Formatting |
 
-Transitive packages (from `package-lock.json`): MIT, ISC, Apache-2.0, BSD-2/3-Clause and
-BlueOak-1.0.0, plus MPL-2.0 for `lightningcss`, a build-time CSS tool inside Vite that is not
-shipped in the app.
+Transitive packages are MIT, ISC, Apache-2.0, BSD-2/3-Clause and BlueOak-1.0.0, plus MPL-2.0
+for `lightningcss`, a build-time tool inside Vite that is not shipped in the app.
 
 ## 4. Repository layout
 
@@ -109,341 +255,143 @@ src/validation/  file reader, integrity checks, decision replay, detectors, eval
 src/export/      CSV, JSON, SQL seed, SQLite DB, manifest, reports
 src/db/          schema loading, table I/O, load order
 src/api/         Express app: dataset store, routes, HTTP helpers
-src/cli/         generate / validate / reproduce entry points
-client/          React dashboard (npm workspace): views/, components/ (ui, charts)
+src/cli/         generate / validate / reproduce / api entry points
+client/          React dashboard (npm workspace)
 test/            unit and integration tests
 data/            generated datasets per profile
 ai-disclosure/   prompt history and AI-usage notes
 ```
 
-## 5. Setup
-
-Requirements: **Node.js 24+** and npm. No database server or external service is needed.
-
-```bash
-npm install
-```
-
-## 6. Run
-
-```bash
-npm run generate -- --profile starter
-```
-
-```bash
-npm run generate -- --profile full
-```
-
-Both profiles use the same generator and seed (`20261022`); only the scale differs
-(`config/generator.config.json`). Options: `--out <dir>` (default `data`), `--config <file>`.
-Everything goes to `data/<profile>/` (layout: [data dictionary §12](docs/data-dictionary.md#12-export-files)):
-
-```
-data/<profile>/
-├── sqlite/yottashift.db      schema + every row, ready to query (built first: the integrity gate)
-├── csv/<table>.csv           21 tables
-├── json/<table>.json         the same rows as JSON
-├── sql/seed.sql              data-only INSERTs; load after sql/schema.sql
-├── ground_truth/             labels, kept apart from the inputs
-├── reports/                  metrics, validation summary, reproducibility report
-└── manifest.json             rows, bytes and SHA-256 of every file + seed, config, provenance
-```
-
-The SQLite database is written first: loading it enforces every type, CHECK and foreign key of
-`sql/schema.sql`, so a bad row stops the run before any other file is written.
-
-**What is in git:** `data/starter/` is committed in full as the sample (12 MB). The full profile
-is 391 MB (the SQLite file alone is above GitHub's 100 MB limit), so only its `manifest.json`,
-`reports/` and `ground_truth/` are committed; regenerate the data with the command above and
-check it against the published checksums with `npm run reproduce -- --profile full`.
-
-| Profile | Teams | Employees | Days | Leave requests | Swap requests |
-| --- | --- | --- | --- | --- | --- |
-| `starter` | 10 | 200 | 28 | 160 | 60 |
-| `full` | 100 | 2,000 | 90 | 5,000 | 1,500 |
-
-Full profile, as published (including the labelled anomalies of §9):
-
-| Master data | Rows | Transactions and events | Rows | Derived | Rows |
-| --- | --- | --- | --- | --- | --- |
-| labour policies | 2 | leave requests | 5,000 | employee week summary | 25,948 |
-| skills | 30 | leave request events | 10,089 | coverage status | 46,320 |
-| teams | 100 | shift assignments | 95,970 | leave balance | 5,658 |
-| employees | 2,000 | shift assignment events | 98,812 | attendance reconciliation | 93,128 |
-| employee skills | 3,179 | swap requests | 1,500 | | |
-| leave entitlements | 5,658 | swap request events | 3,502 | | |
-| shift templates / holidays / shifts | 4 / 5 / 360 | attendance events | 184,575 | | |
-| coverage requirements | 1,490 | | | | |
-
-A full run takes about 20–25 s and writes 391 MB (CSV 60 MB, JSON 152 MB, SQL seed 77 MB,
-SQLite 103 MB). The starter profile takes about 1 s.
-
-Then validate what was written and prove it is reproducible (see [§7](#7-verify)):
-
-```bash
-npm run validate -- --profile full
-```
-
-```bash
-npm run reproduce -- --profile full
-```
+## 5. API and dashboard
 
 ### API
 
-```bash
-npm run api -- --profile full
-```
-
-Serves `data/<profile>/` at `http://localhost:3001/api` (options: `--port`, `--data`). It opens
+`npm run api -- --profile full` serves `data/<profile>/` at `http://localhost:3001/api`. It opens
 the dataset's SQLite file **read-only**, so the published files and their checksums never
-change; at full scale the exception list is warmed in the background a few seconds after
-start-up. All errors use one shape: `{ "error": { "code", "message" } }` (400 bad parameter or
-ID format, 403 wrong reviewer, 404 unknown ID or route, 422 not applicable). Lists take
-`limit` (1–500, default 50) and `offset`, and return `{ data, page: { limit, offset, total } }`.
+change. Errors use one shape, `{ "error": { "code", "message" } }` (400 bad parameter or ID
+format, 403 wrong reviewer, 404 unknown ID or route, 422 not applicable). Lists take `limit`
+(1–500, default 50) and `offset`, and return `{ data, page: { limit, offset, total } }`.
 
 | Method & path | Returns | For |
 | --- | --- | --- |
 | `GET /health` | Profile, seed, window, row counts, ground-truth counts | admin |
-| `GET /metrics`, `GET /validation`, `GET /reproducibility` | `metrics.json`, `validation_summary.json`, `reproducibility.json` (404 with the command to create it) | admin, HR |
+| `GET /metrics`, `GET /validation`, `GET /reproducibility` | The three reports (404 with the command to create a missing one) | admin, HR |
 | `GET /skills`, `GET /teams`, `GET /teams/:teamId` | Teams with manager, HR partner, members, requirements, coverage totals | manager, HR |
 | `GET /employees?teamId&role&employmentType&q`, `GET /employees/:employeeId` | Employee with skills, leave balances, weekly hours and overtime | manager, HR, employee |
 | `GET /employees/:employeeId/schedule?from&to` | Every assignment with shift times, status, history links and attendance outcome | employee, manager |
-| `GET /coverage?date&teamId&skillId&status`, `GET /coverage/daily?teamId` | Coverage per shift × team × skill (gaps), and per-day totals for charts | manager, ops |
+| `GET /coverage?date&teamId&skillId&status`, `GET /coverage/daily?teamId` | Coverage per shift × team × skill, and per-day totals | manager, ops |
 | `GET /assignments/:assignmentId` | Assignment with its events, punches, reconciliation, and what it replaced / was replaced by | manager, ops |
-| `GET /leave?status&type&reason&teamId&employeeId`, `GET /leave/:id` | Leave with decision rule, full event history and the roster changes it caused | employee, manager, HR |
-| `POST /leave/evaluate` | **What-if:** the decision the rules would give a new request (status, rule, reason, decider, balance); nothing is stored | employee, HR |
+| `GET /leave?status&type&reason&teamId&employeeId`, `GET /leave/:id` | Leave with decision rule, event history and the roster changes it caused | employee, manager, HR |
+| `POST /leave/evaluate` | **What-if:** the decision the rules would give a new request; nothing is stored | employee, HR |
 | `GET /swaps?status&type&reason&teamId`, `GET /swaps/:id` | Swap with decision rule, events, and the assignments it moved and created | employee, manager |
 | `GET /exceptions?ruleId&issueType&kind&teamId&employeeId&reviewStatus`, `GET /exceptions/summary`, `GET /exceptions/:findingId` | Business-rule findings with stable IDs, ground-truth match and review trail | manager, HR, ops |
-| `POST /exceptions/:findingId/reviews` | Append a review (`ACKNOWLEDGED` / `RESOLVED` / `DISMISSED`, note) by the team's manager or HR partner, or an ops partner for attendance / overtime findings | manager, HR, ops |
+| `POST /exceptions/:findingId/reviews` | Append a review (`ACKNOWLEDGED` / `RESOLVED` / `DISMISSED`) by the team's manager or HR partner, or an ops partner for attendance / overtime findings | manager, HR, ops |
 | `GET /ground-truth?labelClass` | The labels, for comparing detections | admin |
 
-Reviews are the only write. They are appended (never edited) to a separate database,
-`data/<profile>/api/reviews.db`, which is git-ignored and is not part of the dataset. Leave
-and swap requests cannot be approved through the API, because the dataset is a closed
-snapshot: every request is already resolved by its documented rule, and changing one would
-rewrite history and break the published checksums.
+Reviews are the only write. They are appended to a separate, git-ignored database
+(`data/<profile>/api/reviews.db`) that is not part of the dataset. Leave and swap requests
+cannot be approved through the API: the dataset is a closed snapshot in which every request is
+already resolved by its documented rule, and changing one would break the published checksums.
 
 ### Dashboard
 
-Start the API first (above), then in a second terminal:
-
-```bash
-npm run client
-```
-
-Open `http://localhost:5173`. Vite forwards `/api` to `http://localhost:3001` (set
-`YOTTASHIFT_API` to use another address). `npm run client:build` writes a static build to
-`client/dist/`.
+`npm run client` (with the API running) opens the dashboard at `http://localhost:5173`.
 
 | View | For | Shows |
 | --- | --- | --- |
-| Overview | HR partner, system administrator | Coverage fill (planned vs clocked in), short slots, overtime breaches, leave and swap approval rates, punctuality, complete records, night-shift fairness, anomalies detected; per-day charts; teams with the most missing hours |
-| Coverage | Manager, IT / ops partner | Per-team daily fill and missing headcount, and every short slot (shift × team × skill) by date |
-| Exceptions | Manager, HR partner, ops partner | Findings by rule, filters, each finding's records, ground-truth label and review trail; adding a review (only the reviewers the API allows are offered) |
-| People | Employee, manager | Search; a person's policy, skills, leave balances and requests, weekly hours against the overtime cap, and full schedule with attendance |
-| Assignment | Manager, ops partner | One assignment's status history, punches, reconciled outcome, and what it replaced or was replaced by |
-| Leave & swaps | Employee, manager, HR partner | Leave and swap requests with the deciding rule, full history and roster changes; the leave what-if form |
-| Validation | System administrator | Status, acceptance criteria, detection per anomaly type, boundary cases, integrity and replay checks, reproducibility |
+| Overview | HR partner, system administrator | Coverage fill (planned vs clocked in), short slots, overtime breaches, leave and swap approval rates, punctuality, fairness, anomalies detected; per-day charts; teams with the most missing hours |
+| Coverage | Manager, IT / ops partner | Per-team daily fill and missing headcount, and every short slot by date |
+| Exceptions | Manager, HR partner, ops partner | Findings by rule with filters, each finding's records, ground-truth label and review trail; adding a review |
+| People | Employee, manager | A person's policy, skills, leave balances and requests, weekly hours against the overtime cap, and full schedule |
+| Assignment | Manager, ops partner | One assignment's status history, punches, reconciled outcome and replacement links |
+| Leave & swaps | Employee, manager, HR partner | Requests with the deciding rule, full history and roster changes; the leave what-if form |
+| Validation | System administrator | Acceptance criteria, detection per anomaly type, boundary cases, integrity and replay checks, reproducibility |
 
-Every ID in the dashboard links to the view that explains it, and every view has its own URL
-(`#/people/EMP-000101`, `#/requests/swaps/SWP-2026-000002`), so a finding can be shared as a
-link. Charts follow one palette checked for colour-blind separation in light and dark mode,
-and each has a "Show data as table" view.
+Every ID links to the view that explains it, and every view has its own URL
+(`#/people/EMP-000101`), so a finding can be shared as a link.
 
-### How the master data is generated
+## 6. How it works
 
-- **Parents first:** labour policies → skills → teams and employees → employee skills → leave
-  entitlements → shift templates → holidays → shifts → coverage requirements.
-- **Seeded randomness only:** one seeded generator (sfc32), with a separate named stream per
-  step, so changing one step never shifts another step's numbers. ESLint bans `Math.random`.
-- **Realistic variation:** six team functions with their own skill pools; 24×7, extended-hours
-  and business-hours teams (10–33 people); about 15% part-time members; joiners and leavers
-  inside the window; certifications that lapse mid-window; a mid-window demand revision for
-  some teams.
-- **Demand from supply:** each team's minimum staffing is sized from the real weekly hours of
-  its members, multiplied by a demand ratio. Most teams can cover their demand, some are at
-  the limit and a few are short, so coverage gaps will come from the data rather than being
-  injected.
+**Master data, parents first:** labour policies → skills → teams and employees → employee
+skills → leave entitlements → shift templates → holidays → shifts → coverage requirements.
+Randomness comes only from one seeded generator with a separate named stream per step, so
+changing one step never shifts another step's numbers. Teams differ in function, skill pool,
+operating pattern (24×7, extended hours, business hours) and size; about 15 % of members are
+part-time; there are joiners, leavers and certifications that lapse mid-window. Each team's
+minimum staffing is sized from the real weekly hours of its members, so coverage gaps come from
+the data rather than being injected.
 
-### How the workflow is simulated
+**The workflow** runs on one timeline in time order, so every decision only sees what happened
+before it. Behaviour (who asks for leave, how late someone is) is seeded input; every
+**outcome** comes from a numbered rule in [docs/business-rules.md](docs/business-rules.md) and is
+stored with that rule's ID.
 
-Everything runs on one timeline in time order, so every decision only sees what had happened
-before it. Behaviour (who asks for leave, how late someone is, how fast a manager answers) is
-seeded input; every **outcome** comes from a numbered rule in
-[docs/business-rules.md](docs/business-rules.md) and is stored with that rule's ID.
-
-1. **Leave** — 5,000 requests (annual, casual, sick, unpaid) are decided in decision-time order:
-   employment, overlap, balance, sick auto-approval, notice, team leave cap. Managers decide up to
-   5 days, the team's HR partner decides longer and unpaid leave, the system auto-approves sick
-   call-ins. Some requests are withdrawn or cancelled later; history is kept as events.
-   *Full profile:* 3,696 approved, 1,122 rejected (5 different reasons), 93 withdrawn,
-   89 cancelled.
-2. **Roster** — each ISO week is published 7 days ahead. For every team, date and shift the
-   scheduler fills the required headcount per skill with eligible people only (skill valid,
-   employed, not on approved leave, one shift a day, 11 h rest, ≤ 6 days in a row, weekly hour
-   limit), choosing by a fairness key (weekly load, then nights/weekends/holidays so far, then
-   total load). Unfillable demand stays a **gap**. *Full profile:* 99.1% of required headcount
-   filled, 669 short slots, never staffed above the requirement.
+1. **Leave** — 5,000 requests decided in decision-time order: employment, overlap, balance, sick
+   auto-approval, notice, team leave cap. Managers decide up to 5 days, the HR partner longer and
+   unpaid leave, the system sick call-ins. *Full profile:* 3,696 approved, 1,122 rejected,
+   93 withdrawn, 89 cancelled.
+2. **Roster** — each ISO week is published 7 days ahead. The scheduler fills the required
+   headcount per skill with eligible people only (skill valid, employed, not on leave, one shift
+   a day, 11 h rest, ≤ 6 days in a row, weekly hour limit), choosing by a fairness key.
+   Unfillable demand stays a **gap**, never an unqualified fill.
 3. **Late leave** — leave approved after publication cancels the affected shifts (as events) and
-   backfills them with the best eligible colleague when one exists. *Full profile:*
-   1,590 backfills.
-4. **Swaps** — 1,500 requests (exchange or cover) made against the live roster, decided by the
-   team manager with the roster as it is at decision time, or expired after 48 h, or cancelled.
-   Approved swaps create new assignments linked to the ones they replace. *Full profile:*
-   522 applied, 750 rejected (9 different reasons), 158 expired, 70 cancelled.
-5. **Attendance** — clock-in/out per worked shift (badge or mobile), late arrivals, early leaves,
-   extensions, no-shows, and missing clock-outs corrected by an ops partner. Clock-outs never
-   push a week past contract + overtime cap. *Full profile:* 184,535 events, 1,481 no-shows,
-   927 manual corrections.
+   backfills them when someone eligible exists. *Full profile:* 1,590 backfills.
+4. **Swaps** — 1,500 requests, decided by the team manager against the roster at decision time,
+   expired after 48 h, or cancelled. Approved swaps create new assignments linked to the ones they
+   replace. *Full profile:* 522 applied, 750 rejected, 158 expired, 70 cancelled.
+5. **Attendance** — clock-in / out per worked shift, late arrivals, early leaves, extensions,
+   no-shows, and missing clock-outs corrected by an ops partner. *Full profile:* 184,575 events.
 
-### Derived tables and metrics
-
-The four derived tables are computed only from the source tables (no randomness), and the
-schema itself re-checks their arithmetic (`gap = max(0, required − qualified)`,
-`remaining = entitled − approved`, overtime flag vs cap):
-
-- **employee_week_summary** — per person and ISO week: contracted hours (prorated to employed
-  days), scheduled, worked, overtime, cap flag.
-- **coverage_status** — per shift × team × skill: required, assigned, qualified, attended,
-  planned gap and gap after absences.
-- **leave_balance** — entitlement − approved days.
-- **attendance_reconciliation** — per worked shift: punches, worked/late/early/extension
-  minutes, outcome (present, no-show, missing punch, no record).
-
-Key metrics for the full profile (`data/full/reports/metrics.md`). The published dataset
-includes the labelled anomalies of §9; the clean-baseline value is in brackets where they move
-it:
-
-| Metric | Value |
-| --- | --- |
-| M-01 Coverage filled by qualified staff / by staff who clocked in | 99.08 % / 97.50 % (baseline 99.10 % / 97.52 %) |
-| M-02 Short slots · missing headcount-hours | 686 · 6,896 h (baseline 669 · 6,752 h) |
-| M-03 Employee-weeks with overtime · max weekly overtime · cap breaches | 7,371 · 13.48 h · 20 (baseline max 12 h, 0 breaches) |
-| M-04 Leave approval rate: annual / casual / sick / unpaid | 63 % / 79 % / 91 % / 81 % |
-| M-05 Swap approval of manager decisions · expiry rate | 40 % · 10.5 % (baseline 41 %) |
-| M-06 Punctuality · no-shows · extensions | 93.1 % · 1.6 % · 9.4 % |
-| M-07 Due shifts with a complete record · worked ÷ scheduled (present) | 99.83 % · 101.4 % |
-| M-08 Fairness (Jain's index, mean across teams): nights / weekends / holidays / hours per contract | 0.977 / 0.948 / 0.907 / 0.994 |
-
-The 20 cap breaches are exactly the 20 labelled `OVERTIME_CAP_EXCEEDED` cases; the extra short
-slots come from the `SKILL_ABSENT` cases (the switched assignment no longer counts as qualified
-for its original skill).
+**Derived tables** are computed only from the source tables, and the schema re-checks their
+arithmetic: `employee_week_summary` (contracted, scheduled, worked and overtime hours per ISO
+week), `coverage_status` (required, assigned, qualified and attended headcount per shift × team ×
+skill), `leave_balance` (entitlement − approved days) and `attendance_reconciliation` (worked,
+late, early and extension minutes and the outcome per shift).
 
 ## 7. Verify
 
-### Validate a generated dataset
+### Validation
 
-```bash
-npm run validate -- --profile full
-```
-
-The validator reads **only the exported files** (`data/<profile>/csv/` and `ground_truth/`),
-writes `data/<profile>/reports/validation_summary.json` and `.md`, prints a summary and exits
-with code 1 if anything is wrong. Full profile: about 30–35 s, **PASS**.
+`npm run validate` reads **only the exported files**, writes
+`data/<profile>/reports/validation_summary.json` and `.md`, and exits with code 1 if anything is
+wrong.
 
 | Section | What it proves | Full profile |
 | --- | --- | --- |
-| I-01 … I-12 structural integrity | Files and headers; load into the schema (types, CHECKs, FKs); PK and unique keys; all 47 FK columns; enums; ID formats; date order; duplicates and overlapping ranges; event-chain structure; cross-table consistency; derived tables recompute exactly | 0 failures over 583,330 rows (1.4 M FK lookups, 1.8 M ID checks) |
-| I-13 export formats | JSON, SQL seed and SQLite database hold exactly the CSV rows (same order, same values) | 63 / 63 table comparisons identical |
-| D-01 leave replay | Every leave decision re-run through R-LVE-01 … R-LVE-07 from the exported data | 5,000 / 5,000 identical |
+| I-01 … I-12 structural integrity | Headers; schema load (types, CHECKs, FKs); primary and unique keys; all 47 FK columns; enums; ID formats; date order; duplicates; event chains; cross-table consistency; derived tables recompute exactly | 0 failures over 583,330 rows |
+| I-13 export formats | JSON, SQL seed and SQLite database hold exactly the CSV rows | 63 / 63 tables identical |
+| D-01 leave replay | Every leave decision re-run through the rules from the exported data | 5,000 / 5,000 identical |
 | D-02 swap decisions | Team, skill, notice, deadline, apply window and links consistent with each outcome | 7,075 checks, 0 failures |
-| Detection (M-09) | Detector findings vs ground truth: precision and recall per type, boundary cases, confusion table, unexplained findings | 100 / 100 detected, precision 100 %, 0 / 40 boundary flagged, 0 unexplained |
-| Acceptance A-01 … A-04 | Gaps reported; working-hour rules hold outside labels; attendance reconciles; swap history preserved | all met |
+| Detection (M-09) | Detector findings vs ground truth: precision, recall, boundary cases, unexplained findings | 100 / 100 detected, precision 100 %, 0 / 40 boundary flagged |
+| Acceptance A-01 … A-04 | Gaps reported; working-hour rules hold; attendance reconciles; swap history preserved | all met |
 
-How to read it: **Status** is PASS only when every structural check and decision replay is
-clean, every labelled anomaly is detected by its own detector, no finding falls outside the
-labels, no boundary case is flagged, and every acceptance criterion is met. Otherwise the
-summary lists each problem with sample records. The only expected side effect is that
-unapproved swaps also break their event chain (R-SWP-08); those findings are counted as
-"secondary findings on labelled records".
+**Status** is PASS only when every structural check and decision replay is clean, every
+labelled anomaly is found by its own detector, no finding falls outside the labels, no boundary
+case is flagged and every acceptance criterion is met.
 
 ### Tests and code quality
 
-```bash
-npm test
-npm run lint
-npm run format:check
-```
+`npm test` runs 223 tests:
 
-`npm test` (223 tests, about 40 s, most of it generating and loading the full profile) covers:
-
-- **Schema:** loads into SQLite and accepts a fully consistent fixture touching all 21 tables;
-  enum, rule and lifecycle lists match between code, schema and docs; 17 kinds of broken rows
-  are each rejected by the constraint that should catch them; labelled anomalies stay loadable.
-- **Helpers:** seeded RNG determinism and stream independence, ISO weeks and timestamps across
-  midnight and year ends, ID formats and overflow, exact allocation, CSV quoting.
-- **Config:** the shipped config is valid; typos, missing keys, bad shares, bad enums and
-  impossible dates are rejected.
-- **Master data (both profiles):** volumes from the brief; loads with every FK resolved;
-  identical on regeneration and different with another seed; one manager per team; HR and ops
-  partners only in the Workforce Office; policies match employment types; skill validity and
-  certification expiry; day types; requirements only for each team's pattern, with no
-  overlapping effective ranges, only for skills the team holds, and within what the team could
-  staff at maximum hours.
-- **Leave rules:** each decision rule on a hand-built team (balance, notice, sick auto-approval,
-  team cap, decision-time order, cancellation freeing the cap, overlap with approved and pending
-  requests, employment, HR vs manager).
-- **Scheduler:** each hard rule (double booking, rest, consecutive days, weekly hours, leave from
-  its decision time, expired certification), swap give-and-take on the same day, fairness
-  choice, and a gap instead of an unqualified fill.
-- **Transactions (both profiles):** exact leave and swap volumes; FK-clean load; **zero
-  business-rule violations** in the baseline (only uncorrected missing punches reported as
-  exceptions); byte-identical regeneration; every leave reason and decider; every swap outcome;
-  swap and backfill history links; rosters published before their week; attendance sources and
-  ops-partner corrections; gaps reported, never over-staffed.
-- **Rule checks catch problems:** double booking, leave overlap, missing skill, overtime cap,
-  unapproved swap, rest / consecutive-day / weekly-hour breaches, history without events, and
-  attendance on an unworked shift are each injected into a copy of the data and detected.
-- **Derived values:** a hand-built fixture with every expected number worked out by hand —
-  overtime (incl. cap breach, partial week, joiner), worked time from punch pairs only,
-  late/early/extension minutes, all reconciliation outcomes, qualified vs attended coverage,
-  gaps, leave balances; Jain's index and percentiles. At full scale: no cap breaches, every due
-  shift reconciled, short slots equal an independent count, no negative balances, metrics add up
-  to the source tables and are reproducible.
-- **Anomalies and ground truth (both profiles):** exact anomaly counts per type; boundary counts
-  (full: all reachable types complete); layout, IDs, rules and classes; every label points at
-  existing records; every anomaly detected by its own detector; no boundary flagged; no
-  finding outside the labels; overtime breaches and at-cap weeks visible in the derived
-  tables; untouched tables identical to the baseline and changed rows only on labelled records;
-  no label-like table or column in the inputs; FK-clean load; same labels on every run.
-- **Validation:** CSV parsing (quotes, commas, newlines, CRLF); the CSV round trip returns exactly
-  the generated data; the starter dataset passes every check; **each check (I-01 … I-12, D-01,
-  D-02) fails on a purpose-built broken copy**; evaluation fails when a label is missing (finding
-  outside the labels), when a label points at a clean record (recall < 1) and when a boundary
-  sits on a violating record; the CLI exits 1 after a team row is removed from `team.csv`.
-- **Exports and reproducibility:** every table written as CSV and JSON plus seed, database,
-  ground truth and metrics; the manifest's rows and SHA-256 match every file and it carries no
-  run timestamp; the database passes `PRAGMA integrity_check` and FK checks with the right row
-  counts; the seed loads into a fresh schema with FKs on; validation passes with I-13 and fails
-  when one JSON value is changed; manifest comparison reports changed checksums, missing files
-  and a different seed; `npm run reproduce` reports IDENTICAL and exits 1 when the published
-  manifest disagrees.
-- **API (22 tests, against a freshly generated starter dataset):** health, metrics, the
-  reproducibility report (404 until it exists), teams and team detail with manager and HR partner names, employee paging / filters / search and detail; schedules in time order with
-  attendance; coverage gaps equal to the derived table and daily totals; assignment, leave and
-  swap histories with their links; what-if outcomes (approval, balance and notice rejections,
-  input validation, managers refused, malformed JSON); 15 labelled findings listed with
-  ground-truth IDs; reviews by the team manager and an ops partner accepted and kept in order,
-  other managers and wrong roles refused; the dataset file's SHA-256 unchanged after reviews;
-  404 / 400 error shapes.
-- **CLI:** writes one CSV per table with schema-ordered headers, `metrics.json` / `metrics.md`,
-  and the ground truth in its own folder (never next to the CSVs); fails cleanly on an unknown
-  profile.
+- **Rules on hand-built fixtures** — every leave, scheduling and swap rule, and every derived
+  number (overtime, worked time, reconciliation outcomes, coverage, balances) against values
+  worked out by hand.
+- **Whole datasets, both profiles** — exact volumes from the brief, FK-clean loads, zero
+  business-rule violations in the clean baseline, every anomaly detected and no boundary flagged,
+  byte-identical regeneration.
+- **Negative tests** — 17 kinds of broken rows rejected by the schema; every validation check
+  and detector run on a copy of the data broken on purpose must fail; the CLI exits 1.
+- **Exports** — the manifest matches every file, the database passes `PRAGMA integrity_check`,
+  the seed loads into a fresh schema, and `reproduce` fails when the manifest disagrees.
+- **API** — 22 tests against a freshly generated dataset: every endpoint, the what-if, review
+  permissions, error shapes, and the dataset file unchanged after reviews.
 
 ### Reproducibility
 
-```bash
-npm run reproduce -- --profile full
-```
-
-Generates the profile twice from scratch into temporary folders with seed `20261022`, compares
-the row count, size and SHA-256 of all 48 output files, and compares them with the published
-`data/<profile>/manifest.json`. Writes `reports/reproducibility.{json,md}`; exits 1 on any
-difference. Result for the full profile: **48 / 48 files identical** across the two runs and
-with the published manifest (391 MB, including the SQLite binary). No output file contains the
-time it was generated, which is what makes this possible. The database file's header records the
-SQLite version, so if Node/SQLite differ from the manifest's `environment`, that one file is
-reported separately and every other file must still match.
+`npm run reproduce` generates the profile twice from scratch with seed `20261022` and compares
+the row count, size and SHA-256 of all 48 output files with each other and with the committed
+`manifest.json`. Result for the full profile: **48 / 48 files identical** (391 MB). No output
+file contains the time it was generated, which is what makes this possible.
 
 ## 8. Data model
 
@@ -451,13 +399,8 @@ reported separately and every other file must still match.
 | --- | --- |
 | [docs/data-dictionary.md](docs/data-dictionary.md) | Every field of all 21 tables: type, required/optional, allowed values, units, uniqueness, validation rule; ID conventions; ground-truth file layout |
 | [docs/erd.md](docs/erd.md) | ER diagram, every FK with cardinality and optionality, N:M bridges, effective dates, lifecycle states |
-| [docs/business-rules.md](docs/business-rules.md) | Actors, the 42 numbered rules (R-xx) behind every outcome, state machines, labelled anomalies, metrics, policy defaults |
+| [docs/business-rules.md](docs/business-rules.md) | Actors, the 42 numbered rules behind every outcome, state machines, labelled anomalies, metrics, policy defaults |
 | [sql/schema.sql](sql/schema.sql) | The executable schema (SQLite `STRICT` tables, PK/FK/UNIQUE/CHECK) |
-
-**Tables.** The 10 core entities from the brief (Employee, Team, Skill, ShiftTemplate,
-ShiftAssignment, LeaveRequest, HolidayCalendar, AttendanceEvent, CoverageRequirement,
-SwapRequest), plus `labor_policy`, the `employee_skill` bridge, `leave_entitlement`, a `shift`
-table (date × template), three append-only event tables and four derived tables.
 
 **IDs.** From the brief: `EMP-000001`, `SHIFT-2026-01-01-A`, `LVE-2026-000001`,
 `ATT-<employee-id>-<timestamp>` (e.g. `ATT-EMP-000001-20260101T055800`), `SWP-2026-000001`.
@@ -469,22 +412,21 @@ immutable and identical in every export.
 an append-only event table. A swap or backfill creates a new assignment that points to the one
 it replaces; nothing is overwritten.
 
-**Integrity split.** The schema rejects structurally broken rows (bad IDs, impossible dates,
-unknown enums, broken FKs, inconsistent derived columns). Cross-row business rules
+**Integrity split.** The schema rejects structurally broken rows; cross-row business rules
 (double booking, rest, overtime cap, swap approval) are checked by the validator, so the
 deliberately injected anomalies can be loaded and then detected.
 
 ## 9. Edge cases and ground truth
 
-After the clean baseline is built (and shown to break no rule), labelled cases are injected and
-the derived tables are recomputed from the final records. Labels are written only to
+The clean baseline is built first and shown to break no rule; labelled cases are then injected
+and the derived tables recomputed. Labels are written only to
 `data/<profile>/ground_truth/ground_truth.csv` and `.json`; no input table or column marks a row
 as injected.
 
 | Case | Rule | How it is made | Full profile |
 | --- | --- | --- | --- |
 | Employee double-booked | R-SCH-01 | A second booking of a shift they already work, with a no-show on it | 20 |
-| Approved leave overlaps an assigned shift | R-SCH-02 | A shift added inside an existing approved leave, with a no-show | 20 |
+| Approved leave overlaps an assigned shift | R-SCH-02 | A shift added inside an existing approved leave | 20 |
 | Required skill absent | R-SCH-03 | A worked assignment switched to a team skill the person does not hold | 20 |
 | Overtime cap exceeded | R-OVT-02 | A week's last clock-out moved past the remaining overtime budget | 20 |
 | Swap applied without approval | R-SWP-06 | The `APPROVED` event removed from an applied swap | 20 |
@@ -494,14 +436,9 @@ as injected.
 | *Boundary:* swap requested exactly 24 h ahead | R-SWP-04 | `requested_at` set to shift start − 24 h | 10 |
 
 Each anomaly breaks only its own rule (the one expected side effect: an unapproved swap also
-breaks its event chain, R-SWP-08), touches only the rows it names, and uses a different
-employee from every other label. The exact-11-hour rest boundary cannot occur with the
-configured templates, so a unit test covers it instead. Details:
+breaks its event chain, R-SWP-08), touches only the rows it names, and uses a different employee
+from every other label. Details:
 [business rules §4](docs/business-rules.md#4-labelled-anomalies-and-boundary-cases).
-
-`npm run validate` grades the detectors against this file: on the full dataset all 100
-anomalies are found (recall and precision 100 % for every type), none of the 40 boundary cases
-is flagged, and no finding falls outside the labels.
 
 ## 10. Assumptions
 
@@ -512,28 +449,26 @@ is flagged, and no finding falls outside the labels.
   partners, so every HR decision and manual punch correction traces to a person.
 - Managers, HR partners and ops partners are not rostered; employees stay in one team for the
   whole window.
-- All data is synthetic. No real people, no external datasets. Names are random combinations
-  of common given names and surnames.
-- The holiday calendar is a synthetic company calendar modelled on common Indian holidays
-  (New Year's Day, Makar Sankranti / Pongal, Republic Day, Holi, Eid al-Fitr). Dates of
-  moveable festivals are approximate and not an authoritative list.
+- All data is synthetic: names are random combinations of common given names and surnames, and
+  the holiday calendar is a synthetic company calendar modelled on common Indian holidays (dates
+  of moveable festivals are approximate).
 
 Full list: [tracking.md §9](tracking.md#9-open-questions--assumptions).
 
 ## 11. Key decisions & trade-offs
 
-The reasoning, the architecture diagram, the trade-offs table and a walkthrough are in
-[docs/design-notes.md](docs/design-notes.md); every decision with its rejected alternatives is
-in [tracking.md §8](tracking.md#8-decision-log). In short:
+The reasoning, architecture, trade-offs and a walkthrough are in
+[docs/design-notes.md](docs/design-notes.md); every decision with its rejected alternatives is in
+[tracking.md §8](tracking.md#8-decision-log). In short:
 
-- **Outcomes come from numbered rules; randomness only drives behaviour.** Every decision is
-  stored with its rule ID, so it can be explained and replayed.
+- **Outcomes come from numbered rules; randomness only drives behaviour**, so every decision can
+  be explained and replayed.
 - **One chronological timeline** for leave, roster publication, backfills, swaps and attendance,
   so no decision can see the future.
-- **One implementation of each policy:** the same pure leave engine decides, replays and powers
-  the what-if; derived values are shared by the generator, validator and detectors.
-- **The schema enforces structure, the validator enforces business rules**, so labelled
-  anomalies stay loadable and must be detected.
+- **One implementation of each policy:** the same leave engine decides, replays and powers the
+  what-if.
+- **The schema enforces structure, the validator enforces business rules**, so labelled anomalies
+  stay loadable and must be detected.
 - **Clean baseline first, then one-rule anomalies on separate employees**, so precision and recall
   measure the detectors rather than noise.
 - **No timestamps in outputs** and named random streams, so two runs are byte-identical.
@@ -543,63 +478,39 @@ in [tracking.md §8](tracking.md#8-decision-log). In short:
 
 ## 12. Testing approach
 
-Four layers, from narrow to wide:
-
-1. **Rule-level unit tests on hand-built fixtures.** Each leave, scheduling and swap rule, and
-   every derived number, is checked against values worked out by hand (§7 lists them).
-2. **Whole-dataset property tests on both profiles.** Exact volumes from the brief, FK-clean
-   loads, zero business-rule violations in the baseline, every anomaly detected and no boundary
-   flagged, byte-identical regeneration.
-3. **Negative tests.** Every validation check (I-01 … I-13, D-01, D-02) and every detector is run on
-   a copy of the data broken on purpose and must fail; the CLI must exit 1.
-4. **End-to-end checks on the delivered files.** `npm run validate` (reads only the exports),
-   `npm run reproduce` (two runs and the committed manifest), a clean clone running every
-   documented command, and the dashboard checked in a browser.
+1. **Rule-level unit tests on hand-built fixtures**, with every expected value worked out by hand.
+2. **Whole-dataset property tests on both profiles**: volumes, FK-clean loads, a clean baseline,
+   every anomaly detected, byte-identical regeneration.
+3. **Negative tests**: every validation check and detector must fail on data broken on purpose.
+4. **End-to-end checks on the delivered files**: `npm run validate`, `npm run reproduce`, a clean
+   clone running every command in this README, and the dashboard checked in a browser.
 
 ## 13. Known limitations & next steps
 
-Limitations:
-
-- Injected assignments take the next free `ASG-` numbers, so their IDs sit after the creation
-  order of their neighbours. The detectors never use ID order, but a model that did could tell
-  injected rows apart. Renumbering would change baseline IDs, which must stay immutable.
-- The starter profile is too small to place a swap exactly at the notice limit; the full profile
-  has all reachable boundary types.
-- Full-scale data files are not in git (391 MB); they are regenerated in about 25 s and checked
-  against the committed manifest. The SQLite file's checksum only matches on the same SQLite
-  version (recorded in the manifest).
-- The dashboard has no sign-in: the reviewer is picked from the people the API allows for that
-  finding. That suits a local demo; a real deployment would take the reviewer from the session.
-- Simplifications by design: one time zone, leave counted in calendar days, one team per
-  employee for the whole window, no certification renewals, paid breaks inside the 8-hour shift
-  (tracking.md §9 lists every assumption).
+- Full-scale data is not in git (391 MB); it is regenerated in about 25 s and checked against the
+  committed manifest. The SQLite file's checksum only matches on the same SQLite version.
+- Injected assignments take the next free `ASG-` numbers, so their IDs sit after their
+  neighbours' creation order. No detector uses ID order; renumbering would break immutable IDs.
+- The starter profile is too small for a swap exactly at the notice limit, and the exact-11-hour
+  rest boundary cannot occur with the configured templates (a unit test covers it).
 - Swap decisions are checked against static rules in the validator, not fully replayed against
-  the roster as it stood at decision time (D-43).
-- The exact-11-hour rest boundary cannot occur with the configured shift templates; a unit test
-  covers it instead.
+  the roster at decision time.
+- The dashboard has no sign-in: the reviewer is picked from the people the API allows. A real
+  deployment would take the reviewer from the session.
+- Simplifications by design: one time zone, leave in calendar days, one team per employee, no
+  certification renewals, paid breaks inside the 8-hour shift.
 
-Next steps, in the order I would take them:
-
-1. Make requests actionable on a copy of the dataset (approve, reject, swap) with the same rule
-   engine, keeping the published snapshot untouched.
-2. Full swap replay in the validator, matching what the leave replay already does.
-3. Sign-in with roles, so the reviewer comes from the session rather than a list.
-4. Per-site time zones and working-day leave counting as configurable policies.
-5. A scheduling-quality comparison: the fair scheduler against a simple greedy baseline on the
-   same demand, measured with M-01 and M-08.
+Next steps: make requests actionable on a copy of the dataset with the same rule engine; full
+swap replay in the validator; sign-in with roles; per-site time zones and working-day leave
+counting; a comparison of the fair scheduler with a simple greedy baseline on M-01 and M-08.
 
 ## 14. Data provenance
 
 Every record is generated by this repository's code from seed `20261022`. No external or personal
-data is used: names are random combinations of common given names and surnames, and the holiday
-calendar is a synthetic company calendar modelled on common Indian holidays (not an
-authoritative list). Each profile's `manifest.json` records this provenance together with the
-generator version, the SHA-256 of the configuration, the Node and SQLite versions, and the
-checksum of every output file. If a public reference were ever used, its URL, version,
-retrieval date, licence, attribution, transformations and discarded fields would be listed here
-and in the manifest.
+data is used. Each profile's `manifest.json` records this provenance together with the generator
+version, the SHA-256 of the configuration, the Node.js and SQLite versions, and the checksum of
+every output file.
 
 ## 15. AI usage
 
-See [ai-disclosure/](ai-disclosure/) for the prompt history and notes on where AI was used and
-what was reviewed and validated by hand.
+See [ai-disclosure/](ai-disclosure/) for the prompt history and notes on how AI was used.

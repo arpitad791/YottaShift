@@ -291,7 +291,7 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 | F-05 | Prompt history: all prompts to every AI tool; responses optional; disclose export limits | 10 | ✅ `ai-disclosure/prompt-history.md`: all 17 prompts verbatim from the local transcripts, export limits disclosed (Q-02) |
 | F-06 | Individual work; understand core logic, design choices, dependencies, limitations | all | ✅ `docs/design-notes.md` (architecture, reasoning, trade-offs, walkthrough); decision log §8 |
 | F-07 | Own stack; free/local services; avoid large or slow dependencies | 0 | ✅ Node standard library + Express and React (MIT, exact pins); everything local |
-| F-08 | No hosted demo or test suite mandatory; clear setup/run steps and how core functionality was verified; environment needs and limitations | 10 | ✅ README Quick start, §5–7 (setup, run, verify), §13 limitations; clean-clone run (Phase 10) |
+| F-08 | No hosted demo or test suite mandatory; clear setup/run steps and how core functionality was verified; environment needs and limitations | 10 | ✅ README Setup (step-by-step with expected output, troubleshooting), §7 verify, §13 limitations; clean-clone run (Phase 10) |
 | F-09 | Reuse only standard deps / small snippets; follow licences, attribute | 10 | ✅ README §3 dependency licence table; sfc32 / cyrb128 attributed in `src/lib/rng.js` |
 | F-10 | Unclear requirements → reasonable assumptions; partial work OK if stated; explain deviations | all | ✅ §9 + README §10 assumptions; deviation D-51 in README §11 and design notes §3 |
 | F-11 | No secrets, credentials, personal/sensitive info, proprietary code | all | ✅ scan of all tracked files (Phase 10): no keys, tokens, emails, phone numbers or local paths; synthetic data only |
@@ -300,7 +300,7 @@ Every point of the brief and both PDFs, mapped to the phase that delivers it and
 
 | ID | Point | Phase | How we meet it |
 | --- | --- | --- | --- |
-| G-01 | Make it run: working code + steps to install, configure, run, verify | 10 | ✅ README Quick start and §5–7; clean clone (Windows, `autocrlf=true`) runs every command |
+| G-01 | Make it run: working code + steps to install, configure, run, verify | 10 | ✅ README Setup section first, then §5 (API, dashboard) and §7 (verify); clean clone (Windows, `autocrlf=true`) runs every command |
 | G-02 | Show your work: public repo, meaningful commits, supporting context | all | ✅ one commit per phase (11 commits); tracking.md change log |
 | G-03 | Use LLMs transparently: prompt history; where AI accelerated, where relied heavily, what you reviewed/changed/validated | 10 | ✅ `ai-disclosure/README.md` + `prompt-history.md` · **candidate:** complete "What I personally reviewed" |
 | G-04 | Make reasoning visible: problem, assumptions, decisions, trade-offs, testing approach, limitations, how you know it works | 1, 10 | ✅ README §1, §10–13 + `docs/design-notes.md` |
