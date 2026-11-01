@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
+// Set at build time in vite.config.js: the hosted API by default, the local one with client:local.
+export const API_URL = __API_URL__;
+
 export async function api(path, options) {
-  const res = await fetch(`/api${path}`, options);
+  const res = await fetch(`${API_URL}/api${path}`, options);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error?.message ?? `${res.status} ${res.statusText}`);
   return body;

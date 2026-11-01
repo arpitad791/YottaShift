@@ -9,6 +9,15 @@ import { rosterRoutes } from './routes/roster.js';
 export function createApp(store) {
   const app = express();
   app.disable('x-powered-by');
+  // The dashboard is served from another origin (Netlify, or Vite in development) and calls the
+  // API directly. Nothing here relies on cookies, so any origin may read it.
+  app.use((req, res, next) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    return next();
+  });
   app.use(express.json({ limit: '10kb' }));
 
   const api = express.Router();

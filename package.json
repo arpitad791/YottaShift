@@ -16,6 +16,7 @@
     "reproduce": "node src/cli/reproduce.js",
     "api": "node src/cli/api.js",
     "client": "npm run dev --workspace client",
+    "client:local": "npm run dev --workspace client -- --mode local-api",
     "client:build": "npm run build --workspace client",
     "lint": "eslint .",
     "format": "prettier --write .",

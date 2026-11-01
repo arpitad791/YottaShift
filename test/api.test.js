@@ -355,6 +355,23 @@ describe('API: errors', () => {
 });
 
 describe('API: deployment', () => {
+  it('lets a dashboard on another origin call it (CORS, including the POST preflight)', async () => {
+    const preflight = await fetch(`${base}/exceptions/FND-000000000000/reviews`, {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://dashboard.example',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type',
+      },
+    });
+    assert.equal(preflight.status, 204);
+    assert.equal(preflight.headers.get('access-control-allow-origin'), '*');
+    assert.match(preflight.headers.get('access-control-allow-methods'), /POST/);
+    assert.match(preflight.headers.get('access-control-allow-headers'), /Content-Type/i);
+    const res = await fetch(`${base}/health`, { headers: { origin: 'https://dashboard.example' } });
+    assert.equal(res.headers.get('access-control-allow-origin'), '*');
+  });
+
   it('keeps reviews in reviewsDir when the dataset folder is read-only', () => {
     const reviewsDir = mkdtempSync(join(tmpdir(), 'yottashift-reviews-'));
     const deployed = new DatasetStore({

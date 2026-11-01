@@ -101,27 +101,30 @@ IDENTICAL — report in data/full/reports
 npm test
 ```
 
-Takes about 30–40 s. Expected: `tests 223`, `pass 223`, `fail 0`. Code quality checks:
+Takes about 30–40 s. Expected: `tests 225`, `pass 225`, `fail 0`. Code quality checks:
 `npm run lint` and `npm run format:check`.
 
-### 7. Start the API and the dashboard
-
-In a first terminal:
-
-```bash
-npm run api -- --profile full
-```
-
-Wait for `Exceptions ready: 280 findings`. The API is served at `http://localhost:3001/api`;
-try `http://localhost:3001/api/health` (the bare `/api` path has no route and answers 404).
-
-In a second terminal:
+### 7. Open the dashboard
 
 ```bash
 npm run client
 ```
 
-Open `http://localhost:5173`. The dashboard forwards its `/api` calls to port 3001.
+Open `http://localhost:5173`. The dashboard calls the hosted API at
+`https://yotta-shift-api.vercel.app` directly, so nothing else needs to run.
+
+To use your own local API instead, start it in a first terminal:
+
+```bash
+npm run api -- --profile full
+```
+
+Wait for `Exceptions ready: 280 findings` (the API is then at `http://localhost:3001/api`, e.g.
+`http://localhost:3001/api/health`), and start the dashboard in a second terminal with:
+
+```bash
+npm run client:local
+```
 
 ### Commands at a glance
 
@@ -130,10 +133,11 @@ Open `http://localhost:5173`. The dashboard forwards its `/api` calls to port 30
 | `npm run generate -- --profile <starter\|full>` | Builds the dataset from seed `20261022` into `data/<profile>/` (options: `--out <dir>`, `--config <file>`) |
 | `npm run validate -- --profile <name>` | Checks the exported files: integrity, decision replay, anomaly detection vs ground truth, acceptance criteria (exit code 1 on failure) |
 | `npm run reproduce -- --profile <name>` | Two fresh runs compared file by file and with the committed manifest (exit code 1 on any difference) |
-| `npm test` | 223 unit and integration tests |
+| `npm test` | 225 unit and integration tests |
 | `npm run lint` · `npm run format:check` | ESLint and Prettier |
 | `npm run api -- --profile <name>` | Local API on port 3001 (options: `--port`, `--data`) |
-| `npm run client` · `npm run client:build` | Dashboard dev server on port 5173 · static build to `client/dist/` |
+| `npm run client` · `npm run client:build` | Dashboard on port 5173 using the hosted API · static build to `client/dist/` |
+| `npm run client:local` | Dashboard on port 5173 using the local API from `npm run api` |
 
 ### Troubleshooting
 
@@ -143,8 +147,9 @@ Open `http://localhost:5173`. The dashboard forwards its `/api` calls to port 30
   `npm run api -- --profile full --port 3002`, and point the dashboard at it by setting
   `YOTTASHIFT_API=http://localhost:3002` before `npm run client` (PowerShell:
   `$env:YOTTASHIFT_API="http://localhost:3002"; npm run client`).
-- **Dashboard header says "API not reachable"** — the API is not running; start it first
-  (step 7).
+- **Dashboard header says "API not reachable at …"** — the address shown is the API it tried.
+  For `localhost:3001`, start `npm run api -- --profile full` first; for the hosted URL, check
+  the internet connection.
 - **`reproduce` reports a different environment** — the SQLite file's bytes depend on the
   Node.js / SQLite versions (the manifest records Node 24.15.0, SQLite 3.51.3). That one file is
   reported separately; every other file must still match.
@@ -295,7 +300,9 @@ already resolved by its documented rule, and changing one would break the publis
 
 ### Dashboard
 
-`npm run client` (with the API running) opens the dashboard at `http://localhost:5173`.
+`npm run client` opens the dashboard at `http://localhost:5173`, using the hosted API
+(`npm run client:local` uses the local one). The dashboard calls the API directly; the API sends
+CORS headers so the dashboard can be served from any address.
 
 | View | For | Shows |
 | --- | --- | --- |
@@ -312,15 +319,17 @@ Every ID links to the view that explains it, and every view has its own URL
 
 ### Hosted deployment (optional)
 
-The local setup above is the reference way to run the project. For a hosted demo:
+The local setup above is the reference way to run the project. A hosted copy of the API (full
+profile) is live at **https://yotta-shift-api.vercel.app/api** — for example
+[`/api/health`](https://yotta-shift-api.vercel.app/api/health). The first `/api/exceptions`
+request after an idle period takes several seconds while the findings are computed.
 
 - **API on Vercel** — import the repository with the root as the project folder. `vercel.json`
   generates the full dataset during the build and bundles the SQLite file (read-only) with the
   function in [`api/index.js`](api/index.js). No separate database is needed. Reviews are kept
   in `/tmp`, so on the hosted demo they last only as long as the function instance.
 - **Dashboard on Netlify** — import the same repository with the root as the base directory.
-  `netlify.toml` builds `client/dist` and forwards `/api/*` to the Vercel URL set in its
-  redirect rule.
+  `netlify.toml` builds `client/dist`; the built dashboard calls the Vercel API URL directly.
 
 ## 6. How it works
 
@@ -383,7 +392,7 @@ case is flagged and every acceptance criterion is met.
 
 ### Tests and code quality
 
-`npm test` runs 223 tests:
+`npm test` runs 225 tests:
 
 - **Rules on hand-built fixtures** — every leave, scheduling and swap rule, and every derived
   number (overtime, worked time, reconciliation outcomes, coverage, balances) against values
@@ -395,7 +404,7 @@ case is flagged and every acceptance criterion is met.
   and detector run on a copy of the data broken on purpose must fail; the CLI exits 1.
 - **Exports** — the manifest matches every file, the database passes `PRAGMA integrity_check`,
   the seed loads into a fresh schema, and `reproduce` fails when the manifest disagrees.
-- **API** — 22 tests against a freshly generated dataset: every endpoint, the what-if, review
+- **API** — 24 tests against a freshly generated dataset: every endpoint, the what-if, review
   permissions, error shapes, and the dataset file unchanged after reviews.
 
 ### Reproducibility

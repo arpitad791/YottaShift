@@ -12,6 +12,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "client"],
       "port": 5173
+    },
+    {
+      "name": "client-local",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "client:local"],
+      "port": 5173
+    },
+    {
+      "name": "client-build",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview", "--workspace", "client", "--", "--port", "4173"],
+      "port": 4173
     }
   ]
 }

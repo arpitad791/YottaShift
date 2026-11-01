@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useApi } from './api.js';
+import { API_URL, useApi } from './api.js';
 import { StatusBadge } from './components/ui.jsx';
 import { AssignmentView } from './views/Assignment.jsx';
 import { CoverageView } from './views/Coverage.jsx';
@@ -45,7 +45,7 @@ export function App() {
           {health.data
             ? `Profile ${health.data.profile} · seed ${health.data.seed} · ${health.data.window.start_date} → ${health.data.window.end_date}`
             : health.error
-              ? 'API not reachable — start it with npm run api'
+              ? `API not reachable at ${API_URL}`
               : 'Connecting…'}
         </span>
         {validation.data && (

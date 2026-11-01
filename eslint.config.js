@@ -20,7 +20,7 @@ export default [
   },
   {
     files: ['client/src/**/*.{js,jsx}'],
-    languageOptions: { globals: { ...globals.browser } },
+    languageOptions: { globals: { ...globals.browser, __API_URL__: 'readonly' } },
   },
   {
     files: ['src/**/*.js', 'test/**/*.js'],
