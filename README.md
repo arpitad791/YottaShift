@@ -6,8 +6,12 @@ YottaShift generates a seeded, reproducible synthetic dataset for a 2,000-person
 runs the full scheduling workflow on it: leave requests and decisions, skill-based rostering,
 shift swaps with manager approval, attendance, overtime and coverage gaps. Every decision is
 stored with the rule that made it, history is never overwritten, labelled anomalies are graded
-against a separate ground truth, and two runs with the same seed are byte-identical. A local API
-and dashboard expose the decisions and exceptions.
+against a separate ground truth, and two runs with the same seed are byte-identical. An API and
+a dashboard expose the decisions and exceptions.
+
+**Live demo:** dashboard at **https://yotta-shift.netlify.app** · API at
+**https://yotta-shift-api.vercel.app/api/health** (full profile). Everything below also runs
+locally.
 
 ## Setup
 
@@ -319,10 +323,11 @@ Every ID links to the view that explains it, and every view has its own URL
 
 ### Hosted deployment (optional)
 
-The local setup above is the reference way to run the project. A hosted copy of the API (full
-profile) is live at **https://yotta-shift-api.vercel.app/api** — for example
-[`/api/health`](https://yotta-shift-api.vercel.app/api/health). The first `/api/exceptions`
-request after an idle period takes several seconds while the findings are computed.
+The local setup above is the reference way to run the project. The hosted copy runs the full
+profile: the dashboard at **https://yotta-shift.netlify.app** and the API at
+**https://yotta-shift-api.vercel.app/api** (for example
+[`/api/health`](https://yotta-shift-api.vercel.app/api/health)). After an idle period the first
+Exceptions page can take several seconds while the API computes the findings.
 
 - **API on Vercel** — import the repository with the root as the project folder. `vercel.json`
   generates the full dataset during the build and bundles the SQLite file (read-only) with the
