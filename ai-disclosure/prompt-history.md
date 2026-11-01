@@ -353,7 +353,8 @@ Make sure the dashboard uses the API instead of hardcoding sample data.
 Pay attention to the navigation and make the different IDs link to
 their relevant detail views.
 
-Keep the UI clean and responsive.
+Keep the UI clean and responsive. Also check the different views
+at desktop and mobile widths.
 
 ---
 
