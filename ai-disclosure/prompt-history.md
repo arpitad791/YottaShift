@@ -76,15 +76,6 @@ Does it sound relevant to the problem statement?
 If it works, let's use that name consistently throughout the application
 and documentation.
 
-### 4. Git setup
-**Date:** 2026-10-30
-
-I'll handle Git initialisation and connect the repository to GitHub myself.
-Give me the commands to initialise the repository, add the remote and
-verify that everything is connected correctly.
-
-Don't commit or push anything yourself. I'll manage Git operations.
-
 ---
 
 ## Phase 1 — Domain Design and Database Schema
