@@ -32,7 +32,7 @@ export function findingId(finding) {
 }
 
 export class DatasetStore {
-  constructor({ dataDir, profile, patterns }) {
+  constructor({ dataDir, profile, patterns, reviewsDir }) {
     this.profile = profile;
     this.patterns = patterns;
     this.dir = join(dataDir, profile);
@@ -41,8 +41,9 @@ export class DatasetStore {
       throw new Error(`No dataset at ${file}. Run: npm run generate -- --profile ${profile}`);
     }
     this.db = new DatabaseSync(file, { readOnly: true });
-    mkdirSync(join(this.dir, 'api'), { recursive: true });
-    this.reviews = new DatabaseSync(join(this.dir, 'api', 'reviews.db'));
+    const reviewsPath = reviewsDir ?? join(this.dir, 'api');
+    mkdirSync(reviewsPath, { recursive: true });
+    this.reviews = new DatabaseSync(join(reviewsPath, 'reviews.db'));
     this.reviews.exec(REVIEWS_SCHEMA);
     this.cache = {};
   }

@@ -20,6 +20,10 @@ data/full/*
 # Exception reviews written by the API (live, per machine; not part of the dataset)
 data/*/api/
 
+# Vercel build output and CLI link
+public/
+.vercel/
+
 # SQLite side files
 *.db-journal
 *.db-wal

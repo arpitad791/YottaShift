@@ -1,6 +1,6 @@
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -351,5 +351,20 @@ describe('API: errors', () => {
     assert.equal((await get('/coverage?date=2026-02-30')).status, 400);
     assert.equal((await get('/exceptions/FND-zzz')).status, 400);
     assert.equal((await get('/nowhere')).status, 404);
+  });
+});
+
+describe('API: deployment', () => {
+  it('keeps reviews in reviewsDir when the dataset folder is read-only', () => {
+    const reviewsDir = mkdtempSync(join(tmpdir(), 'yottashift-reviews-'));
+    const deployed = new DatasetStore({
+      dataDir: out,
+      profile: 'starter',
+      patterns: config.operatingPatterns,
+      reviewsDir,
+    });
+    deployed.close();
+    assert.ok(existsSync(join(reviewsDir, 'reviews.db')));
+    rmSync(reviewsDir, { recursive: true, force: true });
   });
 });

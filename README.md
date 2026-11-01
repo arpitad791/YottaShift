@@ -310,6 +310,18 @@ already resolved by its documented rule, and changing one would break the publis
 Every ID links to the view that explains it, and every view has its own URL
 (`#/people/EMP-000101`), so a finding can be shared as a link.
 
+### Hosted deployment (optional)
+
+The local setup above is the reference way to run the project. For a hosted demo:
+
+- **API on Vercel** — import the repository with the root as the project folder. `vercel.json`
+  generates the full dataset during the build and bundles the SQLite file (read-only) with the
+  function in [`api/index.js`](api/index.js). No separate database is needed. Reviews are kept
+  in `/tmp`, so on the hosted demo they last only as long as the function instance.
+- **Dashboard on Netlify** — import the same repository with the root as the base directory.
+  `netlify.toml` builds `client/dist` and forwards `/api/*` to the Vercel URL set in its
+  redirect rule.
+
 ## 6. How it works
 
 **Master data, parents first:** labour policies → skills → teams and employees → employee
